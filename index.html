@@ -1,0 +1,3244 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Ассоциации карт</title>
+<style>
+  :root {
+    --bg: #1c1c1c;
+    --surface: #2a2a2a;
+    --surface2: #333;
+    --border: #444;
+    --text: #e0e0e0;
+    --text-dim: #999;
+    --red: #e74c3c;
+    --green: #2ecc71;
+    --blue: #3498db;
+    --orange: #e67e22;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  input, textarea, select {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  html, body {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    line-height: 1.45;
+    overscroll-behavior: none;
+  }
+
+  h1 {
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: #ccc;
+    text-align: center;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    max-width: 720px;
+    margin-bottom: 18px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 14px 8px;
+    min-height: 48px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.88rem;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  .tab-btn.active {
+    background: var(--surface2);
+    border-color: #777;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .tab-content { display: none; width: 100%; max-width: 720px; }
+  .tab-content.active { display: block; }
+  #tab-practice.tab-content { max-width: 960px; }
+  #tab-practice.recall-wide { max-width: 100%; }
+
+  .suits-info {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.84rem;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+
+  .suits-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .suits-info strong { color: var(--text); }
+
+  .format-help {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+  }
+
+  .mode-switch {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .mode-btn {
+    flex: 1;
+    padding: 14px 10px;
+    min-height: 48px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.88rem;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  .mode-btn.active {
+    background: var(--surface2);
+    border-color: #777;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .progress-wrap { margin-bottom: 16px; }
+
+  .progress-bar {
+    height: 6px;
+    background: var(--surface);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #555;
+    width: 0%;
+    transition: width 0.25s;
+  }
+
+  .progress-text {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 4px;
+    text-align: center;
+  }
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .card-container { width: 170px; height: 246px; }
+
+  .card {
+    width: 100%;
+    height: 100%;
+    background: #222;
+    border: 2px solid #555;
+    border-radius: 12px;
+    position: relative;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.45);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 11px;
+    user-select: none;
+  }
+
+  .card.red .suit, .card.red .rank { color: var(--red); }
+  .card.black .suit, .card.black .rank { color: #ddd; }
+
+  .card-corner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+  }
+
+  .card-corner.bottom {
+    transform: rotate(180deg);
+    align-self: flex-end;
+  }
+
+  .rank { font-size: 1.5rem; font-weight: 700; }
+  .suit-small { font-size: 1.15rem; margin-top: 1px; }
+
+  .suit-center {
+    font-size: 4.2rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.92;
+  }
+
+  .card-sm {
+    width: 72px;
+    height: 104px;
+    background: #222;
+    border: 1.5px solid #555;
+    border-radius: 7px;
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 5px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+    user-select: none;
+  }
+
+  .card-sm .rank { font-size: 0.85rem; font-weight: 700; }
+  .card-sm .suit-small { font-size: 0.75rem; }
+  .card-sm .suit-center {
+    font-size: 1.7rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .card-sm.red .suit, .card-sm.red .rank { color: var(--red); }
+  .card-sm.black .suit, .card-sm.black .rank { color: #ddd; }
+
+  .card-xs {
+    width: 96px;
+    height: 138px;
+    background: #222;
+    border: 2px solid #555;
+    border-radius: 8px;
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.38);
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .card-xs:active { cursor: grabbing; }
+  .card-xs .rank { font-size: 1.1rem; font-weight: 700; }
+  .card-xs .suit-small { font-size: 0.9rem; }
+  .card-xs .suit-center {
+    font-size: 2.3rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .card-xs.red .suit, .card-xs.red .rank { color: var(--red); }
+  .card-xs.black .suit, .card-xs.black .rank { color: #ddd; }
+
+  /* Practice memo: 2 cards in group */
+  .card-md {
+    width: 155px;
+    height: 224px;
+    background: #222;
+    border: 2px solid #555;
+    border-radius: 12px;
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.45);
+    user-select: none;
+  }
+  .card-md .rank { font-size: 1.5rem; font-weight: 700; }
+  .card-md .suit-small { font-size: 1.15rem; margin-top: 1px; }
+  .card-md .suit-center {
+    font-size: 3.8rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.92;
+  }
+  .card-md.red .suit, .card-md.red .rank { color: var(--red); }
+  .card-md.black .suit, .card-md.black .rank { color: #ddd; }
+  .card-md .card-corner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+  }
+  .card-md .card-corner.bottom {
+    transform: rotate(180deg);
+    align-self: flex-end;
+  }
+
+  /* Practice memo: 3–4 cards in group */
+  .card-md2 {
+    width: 118px;
+    height: 170px;
+    background: #222;
+    border: 2px solid #555;
+    border-radius: 10px;
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 8px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    user-select: none;
+  }
+  .card-md2 .rank { font-size: 1.25rem; font-weight: 700; }
+  .card-md2 .suit-small { font-size: 1rem; margin-top: 1px; }
+  .card-md2 .suit-center {
+    font-size: 2.9rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.92;
+  }
+  .card-md2.red .suit, .card-md2.red .rank { color: var(--red); }
+  .card-md2.black .suit, .card-md2.black .rank { color: #ddd; }
+  .card-md2 .card-corner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+  }
+  .card-md2 .card-corner.bottom {
+    transform: rotate(180deg);
+    align-self: flex-end;
+  }
+
+  .assoc-display {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.45rem;
+    font-weight: 500;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .input-area {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  input[type="text"], input[type="number"], select {
+    width: 100%;
+    padding: 14px 14px;
+    min-height: 48px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 1rem;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input[type="text"]:focus, input[type="number"]:focus, select:focus { border-color: #777; }
+
+  /* Hide number spinners */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  button.action {
+    flex: 1;
+    min-width: 110px;
+    min-height: 48px;
+    padding: 14px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.92rem;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  button.action:hover { background: #3a3a3a; }
+  button.action:disabled { opacity: 0.4; cursor: default; }
+  button.action:active { background: #444; }
+
+  button.primary {
+    background: #3d3d3d;
+    border-color: #666;
+  }
+
+  button.danger {
+    background: #3a2a2a;
+    border-color: #664444;
+  }
+
+  button.success {
+    background: #2a3a2a;
+    border-color: #446644;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .controls button {
+    flex: 1;
+    min-height: 48px;
+    padding: 14px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.85rem;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  .controls button:hover { border-color: #666; color: var(--text); }
+  .controls button:active { background: #3a3a3a; }
+
+  .results { display: none; width: 100%; }
+  .results.active { display: block; }
+
+  .results h2 {
+    font-size: 1.2rem;
+    margin-bottom: 14px;
+    text-align: center;
+    color: #ccc;
+  }
+
+  .stats-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    font-size: 0.92rem;
+  }
+
+  .stats-box div { margin-bottom: 4px; }
+  .stats-box strong { color: #ddd; }
+
+  .result-section { margin-bottom: 20px; }
+
+  .result-section h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    color: #bbb;
+  }
+
+  .result-section.correct h3 { color: var(--green); }
+  .result-section.wrong h3 { color: var(--red); }
+
+  .cards-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .result-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    max-width: 90px;
+    text-align: center;
+  }
+
+  .result-item .user-answer {
+    font-size: 0.7rem;
+    color: #888;
+    word-break: break-word;
+  }
+
+  .catalog-suit { margin-bottom: 28px; }
+
+  .catalog-suit h3 {
+    font-size: 1.05rem;
+    margin-bottom: 12px;
+    color: #ccc;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+  }
+
+  .catalog-suit .theme {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    font-weight: 400;
+  }
+
+  .catalog-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .catalog-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 90px;
+  }
+
+  .catalog-item .assoc-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  .hidden { display: none !important; }
+
+  /* ===== PRACTICE TAB STYLES ===== */
+  .setup-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .setup-panel h2 {
+    font-size: 1.1rem;
+    margin-bottom: 14px;
+    color: #ccc;
+    text-align: center;
+  }
+
+  .setup-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+
+  .setup-row label {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    min-width: 140px;
+  }
+
+  .setup-row .control {
+    flex: 1;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .preset-btn {
+    padding: 12px 14px;
+    min-height: 44px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.82rem;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  .preset-btn:hover, .preset-btn.active {
+    border-color: #777;
+    color: var(--text);
+    background: #3a3a3a;
+  }
+  .preset-btn:active { background: #444; }
+
+  .timer-display {
+    font-size: 1.8rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--blue);
+    margin: 10px 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .timer-display.warning { color: var(--orange); }
+  .timer-display.danger { color: var(--red); }
+
+  .group-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin: 16px 0;
+    min-height: 120px;
+  }
+
+  .memo-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 12px;
+  }
+
+  .memo-controls button {
+    padding: 14px 16px;
+    min-height: 48px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.9rem;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  .memo-controls button:hover { background: #3a3a3a; }
+  .memo-controls button:active { background: #444; }
+  .memo-controls button:disabled { opacity: 0.4; cursor: default; }
+
+  .progress-options {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  .progress-options input { accent-color: #666; }
+
+  /* Recall phase */
+  #pracRecall {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #pracRecall.recall-active {
+    /* when recall is shown — body padding adjusted via JS/class */
+  }
+
+  .recall-top {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding-bottom: 320px; /* space for fixed dock + preview */
+  }
+
+  .slots-area {
+    margin-bottom: 12px;
+  }
+
+  .slots-area h3 {
+    font-size: 0.95rem;
+    color: #bbb;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  .slots-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    padding: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    /* no max-height — page scrolls, dock stays fixed */
+  }
+
+  .slot {
+    width: 104px;
+    height: 150px;
+    border: 2px dashed #555;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: #1a1a1a;
+    transition: border-color 0.15s, background 0.15s;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .slot.drag-over {
+    border-color: var(--blue);
+    background: #1a2a3a;
+  }
+
+  .slot.filled {
+    border-style: solid;
+    border-color: #555;
+    background: #222;
+  }
+
+  .slot.tap-target {
+    border-color: var(--blue);
+    background: #1a2a3a;
+  }
+
+  .slot-num {
+    position: absolute;
+    top: 2px;
+    left: 3px;
+    font-size: 0.6rem;
+    color: #666;
+    z-index: 2;
+  }
+
+  .slot .card-xs {
+    width: 96px;
+    height: 138px;
+  }
+
+  /* ===== Fixed bottom fan pool ===== */
+  .pool-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9000;
+    background: linear-gradient(to top, #252525 80%, rgba(37,37,37,0.98));
+    border-top: 1px solid #3a3a3a;
+    box-shadow: 0 -8px 28px rgba(0,0,0,0.55);
+    padding: 6px 10px max(12px, env(safe-area-inset-bottom));
+    display: none; /* shown only in recall */
+  }
+
+  #pracRecall:not(.hidden) .pool-dock,
+  .pool-dock.visible {
+    display: block;
+  }
+
+  .pool-dock-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    padding: 0 6px 2px;
+  }
+
+  .pool-stats {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  /* Preview of focused / selected card */
+  .pool-preview-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    min-height: 118px;
+    padding: 4px 8px 2px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .pool-preview-card {
+    width: 78px;
+    height: 112px;
+    flex-shrink: 0;
+    transition: opacity 0.12s ease;
+  }
+
+  .pool-preview-card.empty {
+    opacity: 0.35;
+  }
+
+  .pool-preview-card .card-xs {
+    width: 78px;
+    height: 112px;
+  }
+
+  .pool-preview-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    max-width: 280px;
+  }
+
+  .pool-preview-name {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .pool-preview-name.red { color: var(--red); }
+  .pool-preview-name.black { color: #eee; }
+
+  .pool-preview-hint {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    line-height: 1.3;
+  }
+
+  /* Touch / coarse pointer: text-only preview (no card image) */
+  @media (hover: none), (pointer: coarse) {
+    .pool-preview-wrap {
+      min-height: 52px;
+      padding: 6px 10px 4px;
+      gap: 0;
+    }
+    .pool-preview-card {
+      display: none !important;
+    }
+    .pool-preview-info {
+      max-width: 100%;
+      text-align: center;
+      align-items: center;
+    }
+    .pool-preview-name {
+      font-size: 1.2rem;
+      letter-spacing: 0.02em;
+    }
+    .pool-preview-hint {
+      font-size: 0.72rem;
+    }
+  }
+
+  .pool-fan {
+    position: relative;
+    height: 148px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    overflow: visible;
+    touch-action: none;
+  }
+
+  /* Suit markers under the fan for faster scanning */
+  .pool-suit-markers {
+    display: block;
+    max-width: 1200px;
+    margin: 0 auto 2px;
+    height: 14px;
+    position: relative;
+    pointer-events: none;
+  }
+
+  .pool-suit-marker {
+    position: absolute;
+    font-size: 0.7rem;
+    color: #666;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  .pool-suit-marker.red { color: #a44; }
+
+  /* Edge cards in the fan */
+  .pool-item {
+    position: absolute;
+    top: 8px;
+    width: 40px;
+    height: 128px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    /* No left/width transition during scrub — prevents hit-target jump */
+    transition: none;
+    cursor: grab;
+    will-change: left, width;
+    transform-origin: center bottom;
+  }
+
+  .pool-item .fan-card {
+    width: 100%;
+    height: 100%;
+    background: #2a2a2a;
+    border: 1.5px solid #555;
+    border-radius: 5px 7px 7px 5px;
+    box-shadow: 1px 2px 8px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 5px 2px 4px;
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
+    transform-origin: center bottom;
+  }
+
+  .pool-item .fan-card .fan-rank {
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.05;
+    color: #e0e0e0;
+  }
+
+  .pool-item .fan-card .fan-suit {
+    font-size: 1.15rem;
+    line-height: 1;
+    margin-top: 1px;
+  }
+
+  .pool-item.fan-focus .fan-card .fan-rank,
+  .pool-item.selected .fan-card .fan-rank {
+    font-size: 1.25rem;
+  }
+  .pool-item.fan-focus .fan-card .fan-suit,
+  .pool-item.selected .fan-card .fan-suit {
+    font-size: 1.45rem;
+  }
+
+  .pool-item.red .fan-card .fan-rank,
+  .pool-item.red .fan-card .fan-suit { color: var(--red); }
+  .pool-item.black .fan-card .fan-rank,
+  .pool-item.black .fan-card .fan-suit { color: #ddd; }
+
+  .pool-item .count-badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    background: #444;
+    color: #eee;
+    font-size: 0.58rem;
+    min-width: 18px;
+    height: 16px;
+    padding: 0 3px;
+    border-radius: 8px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 6;
+    border: 1px solid #333;
+    font-weight: 600;
+    pointer-events: none;
+  }
+
+  .pool-item.show-count.fan-focus .count-badge,
+  .pool-item.show-count.selected .count-badge {
+    display: flex;
+  }
+
+  .pool-item.disabled {
+    opacity: 0.28;
+    pointer-events: none;
+  }
+
+  .pool-item .fan-card.dragging {
+    opacity: 0.35;
+  }
+
+  .pool-item.selected .fan-card {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.75);
+    background: #1e2a35;
+  }
+
+  .pool-item.selected .count-badge {
+    background: var(--blue);
+  }
+
+  /* Focused: wider + clearer so the active card is unmistakable */
+  .pool-item.fan-focus {
+    z-index: 80 !important;
+  }
+  .pool-item.fan-focus .fan-card {
+    box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+    border-color: #999;
+    background: #333;
+  }
+  .pool-item.fan-focus.selected .fan-card {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.85), 0 6px 18px rgba(0,0,0,0.5);
+  }
+
+  /* Ghost card that follows finger / pointer */
+  .drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1.08);
+    filter: drop-shadow(0 12px 24px rgba(0,0,0,0.6));
+    transition: none;
+    will-change: left, top;
+  }
+
+  .drag-ghost .card-xs {
+    width: 100px;
+    height: 144px;
+  }
+
+  body.is-dragging {
+    overflow: hidden !important;
+    touch-action: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+
+  body.is-dragging .slots-grid,
+  body.is-dragging .pool-fan {
+    pointer-events: auto;
+  }
+
+  .recall-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 16px;
+  }
+
+  .recall-controls button {
+    padding: 14px 18px;
+    min-height: 48px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.92rem;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  .recall-controls button:hover { background: #3a3a3a; }
+  .recall-controls button:active { background: #444; }
+  .recall-controls button.primary { background: #3d3d3d; border-color: #666; }
+  .recall-controls button.success { background: #2a3a2a; border-color: #446644; }
+
+  /* Results for practice */
+  .prac-result-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .prac-result-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.7rem;
+    width: 58px;
+  }
+
+  .prac-result-item .pos {
+    color: #888;
+    font-size: 0.65rem;
+  }
+
+  .prac-result-item.correct .card-xs { border-color: var(--green); }
+  .prac-result-item.wrong .card-xs { border-color: var(--red); }
+  .prac-result-item.empty .card-xs { border-color: #555; opacity: 0.5; }
+
+  .prac-result-item .expected {
+    color: #888;
+    font-size: 0.6rem;
+    text-align: center;
+  }
+
+  .phase-label {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .info-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 0.84rem;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+
+  .info-box strong { color: var(--text); }
+
+  /* Phones: denser layout + fixed fan dock */
+  @media (max-width: 719px) {
+    body {
+      padding: 10px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    .tabs {
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+
+    .tab-btn {
+      padding: 12px 4px;
+      font-size: 0.82rem;
+    }
+
+    .card-xs {
+      width: 78px;
+      height: 112px;
+      padding: 5px;
+      border-radius: 7px;
+    }
+    .card-xs .rank { font-size: 0.95rem; }
+    .card-xs .suit-small { font-size: 0.8rem; }
+    .card-xs .suit-center { font-size: 2rem; }
+
+    .slot {
+      width: 86px;
+      height: 124px;
+    }
+    .slot .card-xs {
+      width: 78px;
+      height: 112px;
+    }
+
+    .slots-grid {
+      gap: 5px;
+      padding: 6px;
+    }
+
+    .recall-top {
+      padding-bottom: 220px;
+    }
+
+    .pool-preview-wrap {
+      min-height: 48px;
+      gap: 0;
+      padding: 4px 6px 2px;
+    }
+    .pool-preview-name { font-size: 1.05rem; }
+    .pool-preview-hint { font-size: 0.68rem; }
+
+    .pool-fan {
+      height: 120px;
+    }
+
+    .pool-item {
+      width: 28px;
+      height: 104px;
+      top: 6px;
+    }
+    .pool-item .fan-card .fan-rank { font-size: 0.82rem; }
+    .pool-item .fan-card .fan-suit { font-size: 0.95rem; }
+    .pool-item.fan-focus .fan-card .fan-rank,
+    .pool-item.selected .fan-card .fan-rank { font-size: 1.05rem; }
+    .pool-item.fan-focus .fan-card .fan-suit,
+    .pool-item.selected .fan-card .fan-suit { font-size: 1.2rem; }
+    .pool-item .count-badge {
+      min-width: 18px;
+      height: 16px;
+      font-size: 0.55rem;
+    }
+
+    .drag-ghost .card-xs {
+      width: 86px;
+      height: 124px;
+    }
+
+    .timer-display {
+      font-size: 1.5rem;
+      margin: 6px 0;
+    }
+
+    .group-cards {
+      gap: 8px;
+      min-height: 100px;
+    }
+
+    .memo-controls, .recall-controls {
+      gap: 6px;
+    }
+
+    .memo-controls button,
+    .recall-controls button {
+      padding: 12px 12px;
+      font-size: 0.85rem;
+    }
+
+    .info-box {
+      font-size: 0.78rem;
+      padding: 10px 12px;
+    }
+
+    .phase-label {
+      font-size: 0.82rem;
+    }
+  }
+
+  /* Wide screens: significantly larger practice cards */
+  @media (min-width: 720px) {
+    .card-xs {
+      width: 112px;
+      height: 162px;
+      padding: 7px;
+      border-radius: 9px;
+    }
+    .card-xs .rank { font-size: 1.25rem; }
+    .card-xs .suit-small { font-size: 1.05rem; }
+    .card-xs .suit-center { font-size: 2.7rem; }
+
+    .card-md {
+      width: 180px;
+      height: 260px;
+      padding: 12px;
+      border-radius: 13px;
+    }
+    .card-md .rank { font-size: 1.7rem; }
+    .card-md .suit-small { font-size: 1.3rem; }
+    .card-md .suit-center { font-size: 4.4rem; }
+
+    .card-md2 {
+      width: 140px;
+      height: 202px;
+      padding: 9px;
+      border-radius: 11px;
+    }
+    .card-md2 .rank { font-size: 1.4rem; }
+    .card-md2 .suit-small { font-size: 1.15rem; }
+    .card-md2 .suit-center { font-size: 3.4rem; }
+
+    .card-container { width: 200px; height: 290px; }
+    .card .rank { font-size: 1.7rem; }
+    .card .suit-small { font-size: 1.3rem; }
+    .card .suit-center { font-size: 4.8rem; }
+
+    .slot {
+      width: 120px;
+      height: 174px;
+    }
+    .slot .card-xs {
+      width: 112px;
+      height: 162px;
+    }
+
+    .group-cards { gap: 16px; min-height: 180px; }
+
+    .pool-preview-wrap { min-height: 130px; }
+    .pool-preview-card,
+    .pool-preview-card .card-xs {
+      width: 90px;
+      height: 130px;
+    }
+    .pool-preview-name { font-size: 1.25rem; }
+
+    .pool-fan { height: 160px; }
+    .pool-item {
+      width: 48px;
+      height: 140px;
+      top: 10px;
+    }
+    .pool-item .fan-card .fan-rank { font-size: 1.05rem; }
+    .pool-item .fan-card .fan-suit { font-size: 1.25rem; }
+    .pool-item.fan-focus .fan-card .fan-rank,
+    .pool-item.selected .fan-card .fan-rank { font-size: 1.35rem; }
+    .pool-item.fan-focus .fan-card .fan-suit,
+    .pool-item.selected .fan-card .fan-suit { font-size: 1.55rem; }
+    .recall-top { padding-bottom: 340px; }
+  }
+
+  @media (min-width: 1000px) {
+    .card-xs {
+      width: 128px;
+      height: 184px;
+      padding: 8px;
+    }
+    .card-xs .rank { font-size: 1.4rem; }
+    .card-xs .suit-small { font-size: 1.15rem; }
+    .card-xs .suit-center { font-size: 3.1rem; }
+
+    .card-md {
+      width: 200px;
+      height: 290px;
+      padding: 13px;
+    }
+    .card-md .rank { font-size: 1.85rem; }
+    .card-md .suit-small { font-size: 1.4rem; }
+    .card-md .suit-center { font-size: 5rem; }
+
+    .card-md2 {
+      width: 155px;
+      height: 224px;
+      padding: 10px;
+    }
+    .card-md2 .rank { font-size: 1.55rem; }
+    .card-md2 .suit-small { font-size: 1.25rem; }
+    .card-md2 .suit-center { font-size: 3.8rem; }
+
+    .card-container { width: 220px; height: 318px; }
+    .card .rank { font-size: 1.9rem; }
+    .card .suit-small { font-size: 1.4rem; }
+    .card .suit-center { font-size: 5.4rem; }
+
+    .slot {
+      width: 136px;
+      height: 196px;
+    }
+    .slot .card-xs {
+      width: 128px;
+      height: 184px;
+    }
+
+    .tab-content { max-width: 960px; }
+    .tabs { max-width: 960px; }
+
+    .pool-preview-card,
+    .pool-preview-card .card-xs {
+      width: 100px;
+      height: 144px;
+    }
+    .pool-fan { height: 170px; }
+    .pool-item {
+      width: 52px;
+      height: 150px;
+    }
+    .pool-item .fan-card .fan-rank { font-size: 1.1rem; }
+    .pool-item .fan-card .fan-suit { font-size: 1.35rem; }
+    .recall-top { padding-bottom: 360px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Запоминание ассоциаций карт</h1>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="assoc" onclick="switchTab('assoc')">Ассоциации</button>
+  <button class="tab-btn" data-tab="practice" onclick="switchTab('practice')">Практика</button>
+  <button class="tab-btn" data-tab="catalog" onclick="switchTab('catalog')">Список карт</button>
+</div>
+
+<!-- TAB: ASSOCIATIONS (old training) -->
+<div id="tab-assoc" class="tab-content active">
+
+  <div class="suits-info">
+    <div class="suits-row">
+      <span><strong>♠ Пики</strong></span>
+      <span><strong>♥ Черви</strong></span>
+      <span><strong>♣ Трефы</strong></span>
+      <span><strong>♦ Бубны</strong></span>
+    </div>
+    <div class="format-help">
+      <strong>Формат ответа:</strong><br>
+      • Карта → Ассоциация: достаточно ключевого слова (опечатки и порядок слов учитываются)<br>
+      • Ассоциация → Карта: <code>Пики А</code>, <code>♠А</code>, <code>черви 7</code>, <code>♥7</code>
+    </div>
+  </div>
+
+  <div class="mode-switch">
+    <button class="mode-btn active" id="modeCardToAssoc" onclick="setMode('cardToAssoc')">Карта → Ассоциация</button>
+    <button class="mode-btn" id="modeAssocToCard" onclick="setMode('assocToCard')">Ассоциация → Карта</button>
+  </div>
+
+  <div id="trainingArea">
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">0 / 52</div>
+    </div>
+
+    <div class="main">
+      <div id="displayArea"></div>
+
+      <div class="input-area">
+        <input type="text" id="answerInput" placeholder="Введите ответ..." autocomplete="off">
+        <div class="btn-row">
+          <button class="action primary" id="nextBtn" onclick="submitAndNext()">Далее</button>
+          <button class="action" id="checkNowBtn" onclick="checkNow()">Проверить</button>
+          <button class="action danger" onclick="restart()">Начать заново</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="resultsArea" class="results">
+    <h2>Результаты</h2>
+    <div class="stats-box" id="statsBox"></div>
+
+    <div class="result-section correct">
+      <h3>✓ Правильно (<span id="correctCount">0</span>)</h3>
+      <div class="cards-grid" id="correctGrid"></div>
+    </div>
+
+    <div class="result-section wrong">
+      <h3>✗ Неправильно (<span id="wrongCount">0</span>)</h3>
+      <div class="cards-grid" id="wrongGrid"></div>
+    </div>
+
+    <div class="controls" style="margin-top:20px; max-width:100%;">
+      <button onclick="restart()" style="flex:1; padding:12px;">Пройти ещё раз</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: PRACTICE (new) -->
+<div id="tab-practice" class="tab-content">
+
+  <!-- SETUP -->
+  <div id="pracSetup" class="setup-panel">
+    <h2>Практика запоминания колод</h2>
+    <div class="info-box">
+      Запомните последовательность карт (целые колоды или часть одной), затем расставьте их по порядку.
+    </div>
+
+    <div class="setup-row">
+      <label>Количество колод</label>
+      <div class="control">
+        <select id="pracDecks" style="max-width:110px;" onchange="onDecksChange()">
+          <option value="0">0 (часть)</option>
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+        <span style="color:var(--text-dim);font-size:0.85rem;" id="pracDecksHint">= 52 карты</span>
+      </div>
+    </div>
+
+    <div class="setup-row" id="pracPartialRow" style="display:none;">
+      <label>Количество карт</label>
+      <div class="control">
+        <input type="number" id="pracCardCount" min="1" max="51" value="26" style="max-width:100px;" onchange="updatePartialLabel()" oninput="updatePartialLabel()" onblur="updatePartialLabel(true)">
+        <span style="color:var(--text-dim);font-size:0.85rem;" id="pracTotalCards">= 26 карт</span>
+      </div>
+    </div>
+
+    <div class="setup-row">
+      <label>Карт в группе</label>
+      <div class="control">
+        <select id="pracGroupSize" style="max-width:100px;">
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="setup-row">
+      <label>Время на запоминание</label>
+      <div class="control" style="flex-direction:column;align-items:flex-start;gap:8px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button type="button" class="preset-btn" data-sec="60" onclick="setMemoPreset(60)">1 мин</button>
+          <button type="button" class="preset-btn" data-sec="180" onclick="setMemoPreset(180)">3 мин</button>
+          <button type="button" class="preset-btn active" data-sec="300" onclick="setMemoPreset(300)">5 мин</button>
+          <button type="button" class="preset-btn" data-sec="600" onclick="setMemoPreset(600)">10 мин</button>
+          <button type="button" class="preset-btn" data-sec="0" onclick="setMemoPreset(0)">Без лимита</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="pracMemoMin" min="0" max="60" value="5" style="width:70px;" onchange="onCustomMemoTime()">
+          <span style="color:var(--text-dim);">мин</span>
+          <input type="number" id="pracMemoSec" min="0" max="59" value="0" style="width:70px;" onchange="onCustomMemoTime()">
+          <span style="color:var(--text-dim);">сек</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-row">
+      <label></label>
+      <div class="control">
+        <button class="action primary" style="max-width:220px;" onclick="startPractice()">Начать запоминание</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MEMO PHASE -->
+  <div id="pracMemo" class="hidden">
+    <div class="phase-label">Фаза запоминания</div>
+    <div class="timer-display" id="memoTimer">05:00</div>
+
+    <div class="progress-options">
+      <label><input type="checkbox" id="showProgress" checked onchange="toggleProgress()"> Показывать прогресс</label>
+    </div>
+    <div class="progress-wrap" id="memoProgressWrap">
+      <div class="progress-bar"><div class="progress-fill" id="memoProgressFill"></div></div>
+      <div class="progress-text" id="memoProgressText">0 / 0</div>
+    </div>
+
+    <div class="group-cards" id="memoGroupCards"></div>
+
+    <div class="memo-controls">
+      <button id="memoPrevBtn" onclick="memoPrevGroup()" disabled>← Назад</button>
+      <button id="memoNextBtn" onclick="memoNextGroup()">Далее →</button>
+      <button id="memoPauseBtn" onclick="toggleMemoPause()">Пауза</button>
+      <button id="memoSkipBtn" onclick="skipToRecall()">К вводу</button>
+      <button class="danger" onclick="resetPractice()" title="Сбросить текущую попытку">Сброс</button>
+    </div>
+    <div style="text-align:center;font-size:0.75rem;color:var(--text-dim);margin-top:8px;">
+      ← → — группы · Пробел — пауза
+    </div>
+  </div>
+
+  <!-- RECALL PHASE -->
+  <div id="pracRecall" class="hidden">
+    <div class="recall-top">
+      <div class="phase-label">Фаза вспоминания — расставьте карты по порядку</div>
+      <div class="timer-display" id="recallTimer">15:00</div>
+
+      <div class="slots-area">
+        <h3>Последовательность (слоты)</h3>
+        <div class="slots-grid" id="slotsGrid"></div>
+      </div>
+
+      <div class="recall-controls">
+        <button id="recallPauseBtn" onclick="toggleRecallPause()">Пауза</button>
+        <button class="success" onclick="finishRecall()">Готово</button>
+        <button class="danger" onclick="resetPractice()" title="Сбросить текущую попытку">Сброс</button>
+      </div>
+      <div style="text-align:center;font-size:0.75rem;color:var(--text-dim);margin-top:8px;margin-bottom:8px;">
+        Пробел — пауза
+      </div>
+    </div>
+
+    <!-- Fixed bottom fan pool -->
+    <div class="pool-dock" id="poolDock">
+      <div class="pool-dock-header">
+        <span>Колода</span>
+        <span class="pool-stats" id="poolStats">Использовано: 0 / 0</span>
+      </div>
+      <div class="pool-preview-wrap" id="poolPreviewWrap">
+        <div class="pool-preview-card empty" id="poolPreviewCard"></div>
+        <div class="pool-preview-info">
+          <div class="pool-preview-name" id="poolPreviewName">—</div>
+          <div class="pool-preview-hint" id="poolPreviewHint">Наведите или коснитесь карты в веере</div>
+        </div>
+      </div>
+      <div class="pool-suit-markers" id="poolSuitMarkers"></div>
+      <div class="pool-fan" id="poolGrid"></div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="pracResults" class="results">
+    <h2>Результаты практики</h2>
+    <div class="stats-box" id="pracStatsBox"></div>
+
+    <div class="result-section">
+      <h3>Разбор последовательности</h3>
+      <div class="prac-result-grid" id="pracResultGrid"></div>
+    </div>
+
+    <div class="controls" style="margin-top:20px; max-width:100%;">
+      <button onclick="resetPractice()" style="flex:1; padding:12px;">Новая практика</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: CATALOG -->
+<div id="tab-catalog" class="tab-content">
+  <div id="catalogContent"></div>
+</div>
+
+<script>
+const THEMES = {
+  "Пики": "природа",
+  "Черви": "человек",
+  "Трефы": "ночной клуб",
+  "Бубны": "цирк"
+};
+
+const DATA = [
+  // Пики — природа
+  { suit: "Пики", symbol: "♠", color: "black", rank: "А", main: "дерево", keys: ["дерево", "деревья", "дуб", "ствол", "лес", "деревце"] },
+  { suit: "Пики", symbol: "♠", color: "black", rank: "2", main: "лебедь", keys: ["лебедь", "лебеди", "лебедя", "лебедей"] },
+  { suit: "Пики", symbol: "♠", color: "black", rank: "3", main: "клевер", keys: ["клевер", "клевера", "трилистник"] },
+  { suit: "Пики", symbol: "♠", color: "black", rank: "4", main: "листок", keys: ["листок", "лист", "листочек", "листья", "листов"] },
+  { suit: "Пики", symbol: "♠", color: "black", rank: "5", main: "скамейка", keys: ["скамейка", "скамейки", "лавка", "скамья", "скамейку"] },
+  { suit: "Пики", symbol: "♠", color: "black", rank: "6", main: "змея", keys: ["змея", "змеи", "змею", "гадюка", "уж"] },
+  { suit: "Пики", symbol: "♠", color: "black", rank: "7", main: "обрыв", keys: ["обрыв", "обрыва", "утес", "утёс", "пропасть", "круча"] },
+  { suit: "Пики", symbol: "♠", color: "black", rank: "8", main: "снеговик", keys: ["снеговик", "снеговики", "снеговика"] },
+  { suit: "Пики", symbol: "♠", color: "black", rank: "9", main: "замок", keys: ["замок", "замки", "замка", "крепость", "дворец"] },
+  { suit: "Пики", symbol: "♠", color: "black", rank: "10", main: "озеро", keys: ["озеро", "озера", "озёра", "водоём", "пруд"] },
+  { suit: "Пики", symbol: "♠", color: "black", rank: "В", main: "обезьяна", keys: ["обезьяна", "обезьяны", "обезьяну", "мартышка", "примат"] },
+  { suit: "Пики", symbol: "♠", color: "black", rank: "Д", main: "львица", keys: ["львица", "львицы", "львицу", "львица"] },
+  { suit: "Пики", symbol: "♠", color: "black", rank: "К", main: "лев", keys: ["лев", "льва", "льву", "львы", "царя зверей"] },
+
+  // Черви — человек
+  { suit: "Черви", symbol: "♥", color: "red", rank: "А", main: "дом", keys: ["дом", "дома", "домик", "жилище", "хата"] },
+  { suit: "Черви", symbol: "♥", color: "red", rank: "2", main: "ухо", keys: ["ухо", "уши", "уха", "ушко"] },
+  { suit: "Черви", symbol: "♥", color: "red", rank: "3", main: "грудь", keys: ["грудь", "груди", "грудная"] },
+  { suit: "Черви", symbol: "♥", color: "red", rank: "4", main: "нос", keys: ["нос", "носа", "носу", "носик"] },
+  { suit: "Черви", symbol: "♥", color: "red", rank: "5", main: "плечо", keys: ["плечо", "плечи", "плеча", "плечико"] },
+  { suit: "Черви", symbol: "♥", color: "red", rank: "6", main: "эмбрион", keys: ["эмбрион", "эмбриона", "зародыш", "плод"] },
+  { suit: "Черви", symbol: "♥", color: "red", rank: "7", main: "трость", keys: ["трость", "трости", "палка", "тросточка", "посох"] },
+  { suit: "Черви", symbol: "♥", color: "red", rank: "8", main: "сердце", keys: ["сердце", "сердца", "сердечко"] },
+  { suit: "Черви", symbol: "♥", color: "red", rank: "9", main: "кулак", keys: ["кулак", "кулаки", "кулака", "кулачок"] },
+  { suit: "Черви", symbol: "♥", color: "red", rank: "10", main: "кровать", keys: ["кровать", "кровати", "постель", "койка", "ложе"] },
+  { suit: "Черви", symbol: "♥", color: "red", rank: "В", main: "ребенок", keys: ["ребенок", "ребёнок", "дети", "ребёнка", "ребенка", "малыш", "дитя", "детёныш"] },
+  { suit: "Черви", symbol: "♥", color: "red", rank: "Д", main: "докторша", keys: ["докторша", "докторши", "врачиха", "женщина врач", "женщина-врач"] },
+  { suit: "Черви", symbol: "♥", color: "red", rank: "К", main: "доктор", keys: ["доктор", "доктора", "врач", "медик"] },
+
+  // Трефы — ночной клуб
+  { suit: "Трефы", symbol: "♣", color: "black", rank: "А", main: "ночной клуб", keys: ["ночной клуб", "клуб", "ночного клуба", "дискотека", "найтклаб", "клубный"] },
+  { suit: "Трефы", symbol: "♣", color: "black", rank: "2", main: "люстра", keys: ["люстра", "люстры", "светильник", "потолочный светильник"] },
+  { suit: "Трефы", symbol: "♣", color: "black", rank: "3", main: "писсуары", keys: ["писсуары", "писсуар", "туалеты", "туалет"] },
+  { suit: "Трефы", symbol: "♣", color: "black", rank: "4", main: "прожектор", keys: ["прожектор", "прожекторы", "прожектора", "софит", "свет"] },
+  { suit: "Трефы", symbol: "♣", color: "black", rank: "5", main: "барный столик", keys: ["барный столик", "столик", "барный стол", "стойка", "бар"] },
+  { suit: "Трефы", symbol: "♣", color: "black", rank: "6", main: "диско шар", keys: ["диско шар", "дискошар", "диско-шар", "зеркалольный шар", "зеркальный шар", "дискобол"] },
+  { suit: "Трефы", symbol: "♣", color: "black", rank: "7", main: "пульт диджея", keys: ["пульт диджея", "пульт", "диджейский пульт", "микшер", "пульт dj", "dj пульт"] },
+  { suit: "Трефы", symbol: "♣", color: "black", rank: "8", main: "винил", keys: ["винил", "пластинка", "винила", "пластинки", "винил пластинка", "грампластинка"] },
+  { suit: "Трефы", symbol: "♣", color: "black", rank: "9", main: "воздушный шар", keys: ["воздушный шар", "шар", "воздушного шара", "шарик", "гелиевый шар"] },
+  { suit: "Трефы", symbol: "♣", color: "black", rank: "10", main: "танцпол", keys: ["танцпол", "танц пола", "танцпола", "танцевальная площадка", "дансфлоор"] },
+  { suit: "Трефы", symbol: "♣", color: "black", rank: "В", main: "бутылка", keys: ["бутылка", "бутылки", "бутылку", "бутылочка"] },
+  { suit: "Трефы", symbol: "♣", color: "black", rank: "Д", main: "женщина-DJ", keys: ["женщина-dj", "женщина dj", "женщина-диджей", "диджейша", "женщина диджей", "диджей женщина", "девушка dj", "девушка диджей", "женщина ди джей"] },
+  { suit: "Трефы", symbol: "♣", color: "black", rank: "К", main: "вышибала", keys: ["вышибала", "вышибалы", "охранник", "секьюрити", "баунсер", "вышибалы"] },
+
+  // Бубны — цирк
+  { suit: "Бубны", symbol: "♦", color: "red", rank: "А", main: "цирк", keys: ["цирк", "палатка", "цирковая палатка", "цирка", "шапито", "цирковой шатёр"] },
+  { suit: "Бубны", symbol: "♦", color: "red", rank: "2", main: "батут", keys: ["батут", "батуты", "батута", "подпрыгивать"] },
+  { suit: "Бубны", symbol: "♦", color: "red", rank: "3", main: "маскарадная маска", keys: ["маска", "маскарадная маска", "маски", "маскарад", "маска для лица"] },
+  { suit: "Бубны", symbol: "♦", color: "red", rank: "4", main: "шест цирковой", keys: ["шест", "шест цирковой", "цирковой шест", "пилон", "жердь"] },
+  { suit: "Бубны", symbol: "♦", color: "red", rank: "5", main: "моновелик", keys: ["моновелик", "моноцикл", "одноколёсный", "одноколесный", "уницикл"] },
+  { suit: "Бубны", symbol: "♦", color: "red", rank: "6", main: "пушка", keys: ["пушка", "пушки", "пушку", "пушечное", "пушка цирковая"] },
+  { suit: "Бубны", symbol: "♦", color: "red", rank: "7", main: "трамплин", keys: ["трамплин", "трамплина", "прыжковый"] },
+  { suit: "Бубны", symbol: "♦", color: "red", rank: "8", main: "шары для жонглирования", keys: ["шары", "шары для жонглирования", "жонглирование", "мячи", "жонглерские шары", "шарики"] },
+  { suit: "Бубны", symbol: "♦", color: "red", rank: "9", main: "изогнутый меч / шашка", keys: ["меч", "шашка", "изогнутый меч", "сабля", "ятаган", "кривой меч"] },
+  { suit: "Бубны", symbol: "♦", color: "red", rank: "10", main: "манеж / арена", keys: ["манеж", "арена", "манежа", "арены", "цирковой манеж", "арена цирка"] },
+  { suit: "Бубны", symbol: "♦", color: "red", rank: "В", main: "клоун", keys: ["клоун", "клоуны", "клоуна", "клоунесса", "шут"] },
+  { suit: "Бубны", symbol: "♦", color: "red", rank: "Д", main: "канатаходка", keys: ["канатаходка", "канатоходка", "канатоходец", "канатоход", "по канату"] },
+  { suit: "Бубны", symbol: "♦", color: "red", rank: "К", main: "инспектор манежа", keys: ["инспектор", "инспектор манежа", "конферансье", "рингмастер", "ведущий цирка", "директор манежа"] }
+];
+
+// Precompute card keys
+DATA.forEach(c => {
+  const s = c.suit.toLowerCase();
+  const r = c.rank.toLowerCase();
+  c.cardKeys = [
+    `${s} ${r}`, `${s}${r}`,
+    `${c.symbol}${r}`, `${c.symbol} ${r}`,
+    `${s} ${c.rank}`, `${c.symbol}${c.rank}`,
+    `${c.symbol} ${c.rank}`
+  ];
+  if (c.rank === "А") {
+    c.cardKeys.push(`${s} туз`, `${s}туз`, `${c.symbol}туз`, `туз ${s}`, `туз`);
+  }
+});
+
+let mode = "cardToAssoc";
+let deck = [];
+let index = 0;
+let answers = [];
+let startTime = null;
+let cardStartTime = null;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function switchTab(name) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".tab-content").forEach(t => t.classList.toggle("active", t.id === "tab-" + name));
+  // Hide fixed dock when leaving practice
+  if (name !== "practice") {
+    const dock = document.getElementById("poolDock");
+    if (dock) dock.classList.remove("visible");
+  } else if (!document.getElementById("pracRecall").classList.contains("hidden")) {
+    const dock = document.getElementById("poolDock");
+    if (dock) dock.classList.add("visible");
+  }
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById("modeCardToAssoc").classList.toggle("active", m === "cardToAssoc");
+  document.getElementById("modeAssocToCard").classList.toggle("active", m === "assocToCard");
+  restart();
+}
+
+function restart() {
+  deck = shuffle(DATA);
+  index = 0;
+  answers = [];
+  startTime = null;
+  cardStartTime = null;
+
+  document.getElementById("trainingArea").classList.remove("hidden");
+  document.getElementById("resultsArea").classList.remove("active");
+  document.getElementById("resultsArea").style.display = "none";
+
+  updateProgress();
+  showCurrent();
+  document.getElementById("answerInput").value = "";
+  document.getElementById("answerInput").focus();
+}
+
+function updateProgress() {
+  const pct = (index / 52) * 100;
+  document.getElementById("progressFill").style.width = pct + "%";
+  document.getElementById("progressText").textContent = `${index} / 52`;
+}
+
+function renderCard(card, size = "big") {
+  if (size === "big") {
+    return `
+      <div class="card-container">
+        <div class="card ${card.color}">
+          <div class="card-corner">
+            <span class="rank">${card.rank}</span>
+            <span class="suit-small suit">${card.symbol}</span>
+          </div>
+          <div class="suit-center suit">${card.symbol}</div>
+          <div class="card-corner bottom">
+            <span class="rank">${card.rank}</span>
+            <span class="suit-small suit">${card.symbol}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+  if (size === "xs") {
+    return `
+      <div class="card-xs ${card.color}">
+        <div class="card-corner">
+          <span class="rank">${card.rank}</span>
+          <span class="suit-small suit">${card.symbol}</span>
+        </div>
+        <div class="suit-center suit">${card.symbol}</div>
+      </div>`;
+  }
+  if (size === "md") {
+    return `
+      <div class="card-md ${card.color}">
+        <div class="card-corner">
+          <span class="rank">${card.rank}</span>
+          <span class="suit-small suit">${card.symbol}</span>
+        </div>
+        <div class="suit-center suit">${card.symbol}</div>
+        <div class="card-corner bottom">
+          <span class="rank">${card.rank}</span>
+          <span class="suit-small suit">${card.symbol}</span>
+        </div>
+      </div>`;
+  }
+  if (size === "md2") {
+    return `
+      <div class="card-md2 ${card.color}">
+        <div class="card-corner">
+          <span class="rank">${card.rank}</span>
+          <span class="suit-small suit">${card.symbol}</span>
+        </div>
+        <div class="suit-center suit">${card.symbol}</div>
+        <div class="card-corner bottom">
+          <span class="rank">${card.rank}</span>
+          <span class="suit-small suit">${card.symbol}</span>
+        </div>
+      </div>`;
+  }
+  return `
+    <div class="card-sm ${card.color}">
+      <div class="card-corner">
+        <span class="rank">${card.rank}</span>
+        <span class="suit-small suit">${card.symbol}</span>
+      </div>
+      <div class="suit-center suit">${card.symbol}</div>
+      <div class="card-corner bottom">
+        <span class="rank">${card.rank}</span>
+        <span class="suit-small suit">${card.symbol}</span>
+      </div>
+    </div>`;
+}
+
+function showCurrent() {
+  if (index >= 52) {
+    showResults();
+    return;
+  }
+
+  const card = deck[index];
+  const area = document.getElementById("displayArea");
+
+  if (mode === "cardToAssoc") {
+    area.innerHTML = renderCard(card, "big");
+  } else {
+    area.innerHTML = `<div class="assoc-display">${card.main}</div>`;
+  }
+
+  document.getElementById("answerInput").value = "";
+  updateProgress();
+  cardStartTime = Date.now();
+  document.getElementById("answerInput").focus();
+}
+
+function normalize(str) {
+  return (str || "").toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[^a-zа-я0-9\s]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+    }
+  }
+  return dp[m][n];
+}
+
+function similarity(a, b) {
+  if (!a || !b) return 0;
+  const dist = levenshtein(a, b);
+  const maxLen = Math.max(a.length, b.length);
+  if (maxLen === 0) return 1;
+  return 1 - dist / maxLen;
+}
+
+function fuzzyMatch(user, key) {
+  const u = normalize(user);
+  const k = normalize(key);
+  if (!u || !k) return false;
+
+  if (u === k || u.includes(k) || k.includes(u)) return true;
+
+  const uWords = u.split(" ").filter(Boolean);
+  const kWords = k.split(" ").filter(Boolean);
+
+  if (kWords.length > 1) {
+    const allMatch = kWords.every(kw =>
+      uWords.some(uw => similarity(uw, kw) >= 0.8 || uw.includes(kw) || kw.includes(uw))
+    );
+    if (allMatch) return true;
+  }
+
+  if (similarity(u, k) >= 0.8) return true;
+
+  for (const kw of kWords) {
+    for (const uw of uWords) {
+      if (similarity(uw, kw) >= 0.8) return true;
+    }
+  }
+
+  return false;
+}
+
+function isCorrect(card, userInput) {
+  const norm = normalize(userInput);
+  if (!norm) return false;
+
+  if (mode === "cardToAssoc") {
+    return card.keys.some(k => fuzzyMatch(norm, k));
+  } else {
+    if (card.cardKeys.some(k => fuzzyMatch(norm, k))) return true;
+    const suitNorm = normalize(card.suit);
+    const rankNorm = normalize(card.rank);
+    if (norm.includes(suitNorm) && norm.includes(rankNorm)) return true;
+    if (norm.includes(card.symbol) && norm.includes(rankNorm)) return true;
+    if (fuzzyMatch(norm, card.suit) && fuzzyMatch(norm, card.rank)) return true;
+    return false;
+  }
+}
+
+function submitAndNext() {
+  if (index >= 52) return;
+
+  if (startTime === null) {
+    startTime = Date.now();
+  }
+
+  const card = deck[index];
+  const userAnswer = document.getElementById("answerInput").value.trim();
+  const correct = isCorrect(card, userAnswer);
+  const timeSpent = cardStartTime ? (Date.now() - cardStartTime) : 0;
+
+  answers.push({
+    card,
+    userAnswer: userAnswer || "(пусто)",
+    correct,
+    timeSpent
+  });
+
+  index++;
+  showCurrent();
+}
+
+function checkNow() {
+  if (answers.length === 0 && index === 0) {
+    const userAnswer = document.getElementById("answerInput").value.trim();
+    if (userAnswer) {
+      if (startTime === null) startTime = Date.now();
+      const card = deck[index];
+      const timeSpent = cardStartTime ? (Date.now() - cardStartTime) : 0;
+      answers.push({
+        card,
+        userAnswer,
+        correct: isCorrect(card, userAnswer),
+        timeSpent
+      });
+      index++;
+    }
+  }
+  showResults();
+}
+
+function formatTime(ms) {
+  if (!ms || ms < 0) return "0 сек";
+  const totalSec = Math.round(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  if (m > 0) return `${m} мин ${s} сек`;
+  return `${s} сек`;
+}
+
+function showResults() {
+  const endTime = Date.now();
+  const totalTime = startTime ? (endTime - startTime) : 0;
+  const correctList = answers.filter(a => a.correct);
+  const wrongList = answers.filter(a => !a.correct);
+  const totalAnswered = answers.length;
+
+  document.getElementById("trainingArea").classList.add("hidden");
+  const res = document.getElementById("resultsArea");
+  res.style.display = "block";
+  res.classList.add("active");
+
+  const avg = totalAnswered ? totalTime / totalAnswered : 0;
+  document.getElementById("statsBox").innerHTML = `
+    <div><strong>Отвечено карт:</strong> ${totalAnswered} из 52</div>
+    <div><strong>Правильно:</strong> ${correctList.length} (${totalAnswered ? Math.round(correctList.length / totalAnswered * 100) : 0}%)</div>
+    <div><strong>Неправильно:</strong> ${wrongList.length}</div>
+    <div><strong>Общее время:</strong> ${formatTime(totalTime)}</div>
+    <div><strong>Среднее время на карту:</strong> ${formatTime(avg)}</div>
+  `;
+
+  document.getElementById("correctCount").textContent = correctList.length;
+  document.getElementById("wrongCount").textContent = wrongList.length;
+
+  const cGrid = document.getElementById("correctGrid");
+  cGrid.innerHTML = correctList.length ? correctList.map(a => `
+    <div class="result-item">
+      ${renderCard(a.card, "sm")}
+      <div>${a.card.main}</div>
+      <div class="user-answer">${formatTime(a.timeSpent || 0)}</div>
+    </div>
+  `).join("") : "<div style='color:#666'>Нет</div>";
+
+  const wGrid = document.getElementById("wrongGrid");
+  wGrid.innerHTML = wrongList.length ? wrongList.map(a => `
+    <div class="result-item">
+      ${renderCard(a.card, "sm")}
+      <div>${a.card.main}</div>
+      <div class="user-answer">ваш ответ: ${a.userAnswer}</div>
+      <div class="user-answer">${formatTime(a.timeSpent || 0)}</div>
+    </div>
+  `).join("") : "<div style='color:#666'>Нет</div>";
+}
+
+// Catalog
+(function buildCatalog() {
+  const suits = ["Пики", "Черви", "Трефы", "Бубны"];
+  const container = document.getElementById("catalogContent");
+  let html = "";
+
+  suits.forEach(suitName => {
+    const cards = DATA.filter(c => c.suit === suitName);
+    const theme = THEMES[suitName] || "";
+    html += `<div class="catalog-suit">
+      <h3>${cards[0].symbol} ${suitName} <span class="theme">— ${theme}</span></h3>
+      <div class="catalog-grid">`;
+    cards.forEach(c => {
+      html += `<div class="catalog-item">
+        ${renderCard(c, "sm")}
+        <div class="assoc-label">${c.main}</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+
+  container.innerHTML = html;
+})();
+
+document.getElementById("answerInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    submitAndNext();
+  }
+});
+
+// ===== PRACTICE LOGIC =====
+let prac = {
+  sequence: [],          // original sequence of card objects (with unique instance ids)
+  groups: [],
+  groupIndex: 0,
+  groupSize: 2,
+  decks: 1,
+  partial: false,
+  totalCards: 52,
+  memoLimitSec: 300,     // 0 = unlimited
+  memoElapsed: 0,
+  memoPaused: false,
+  memoTimerId: null,
+  memoStartTs: null,
+  recallLimitSec: 15 * 60,
+  recallElapsed: 0,
+  recallPaused: false,
+  recallTimerId: null,
+  recallStartTs: null,
+  slots: [],             // array of card ids or null
+  poolCounts: {},        // key: "suit|rank" -> remaining count
+  poolCards: [],         // unique card templates for pool display
+  placedCount: 0
+};
+
+function cardKey(c) {
+  return c.suit + "|" + c.rank;
+}
+
+function onDecksChange() {
+  const decks = parseInt(document.getElementById("pracDecks").value, 10) || 0;
+  const partialRow = document.getElementById("pracPartialRow");
+  const hint = document.getElementById("pracDecksHint");
+  if (decks === 0) {
+    partialRow.style.display = "";
+    hint.textContent = "укажите число карт";
+    updatePartialLabel();
+  } else {
+    partialRow.style.display = "none";
+    const n = decks * 52;
+    hint.textContent = `= ${n} карт`;
+  }
+}
+
+function updatePartialLabel(force) {
+  const el = document.getElementById("pracCardCount");
+  const raw = el.value.trim();
+  if (raw === "" && !force) {
+    document.getElementById("pracTotalCards").textContent = "= …";
+    return;
+  }
+  let n = parseInt(raw, 10);
+  if (isNaN(n) || n < 1) n = 1;
+  if (n > 51) n = 51;
+  el.value = String(n);
+  document.getElementById("pracTotalCards").textContent = `= ${n} карт`;
+}
+
+function getPracticeCardCount() {
+  const decks = parseInt(document.getElementById("pracDecks").value, 10) || 0;
+  if (decks === 0) {
+    let n = parseInt(document.getElementById("pracCardCount").value, 10);
+    if (isNaN(n) || n < 1) n = 1;
+    if (n > 51) n = 51;
+    document.getElementById("pracCardCount").value = String(n);
+    return { totalCards: n, decks: 0 };
+  }
+  return { totalCards: decks * 52, decks };
+}
+
+function setMemoPreset(sec) {
+  document.querySelectorAll(".preset-btn").forEach(b => {
+    b.classList.toggle("active", parseInt(b.dataset.sec, 10) === sec);
+  });
+  prac.memoLimitSec = sec;
+  const min = Math.floor(sec / 60);
+  const s = sec % 60;
+  document.getElementById("pracMemoMin").value = min;
+  document.getElementById("pracMemoSec").value = s;
+}
+
+function onCustomMemoTime() {
+  const min = parseInt(document.getElementById("pracMemoMin").value, 10) || 0;
+  const sec = parseInt(document.getElementById("pracMemoSec").value, 10) || 0;
+  const total = min * 60 + sec;
+  prac.memoLimitSec = total;
+  document.querySelectorAll(".preset-btn").forEach(b => {
+    b.classList.toggle("active", parseInt(b.dataset.sec, 10) === total);
+  });
+}
+
+function formatTimer(sec) {
+  if (sec < 0) sec = 0;
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function startPractice() {
+  const { totalCards, decks } = getPracticeCardCount();
+  const groupSize = parseInt(document.getElementById("pracGroupSize").value, 10) || 2;
+  onCustomMemoTime();
+
+  prac.groupSize = groupSize;
+  prac.totalCards = totalCards;
+  prac.partial = (decks === 0);
+  prac.decks = decks === 0 ? 1 : decks; // multi-badge only when decks > 1
+
+  // Build sequence
+  let seq = [];
+  if (decks === 0 || totalCards < 52) {
+    // Random unique subset of full deck
+    const shuffled = shuffle(DATA.map((c, i) => ({ ...c, _id: `0_${i}`, _deck: 0 })));
+    seq = shuffled.slice(0, totalCards);
+  } else {
+    // Full decks
+    for (let d = 0; d < decks; d++) {
+      DATA.forEach((c, i) => {
+        seq.push({ ...c, _id: `${d}_${i}`, _deck: d });
+      });
+    }
+    seq = shuffle(seq);
+  }
+  prac.sequence = seq;
+
+  // Groups
+  prac.groups = [];
+  for (let i = 0; i < prac.sequence.length; i += groupSize) {
+    prac.groups.push(prac.sequence.slice(i, i + groupSize));
+  }
+  prac.groupIndex = 0;
+
+  // Reset timers
+  prac.memoElapsed = 0;
+  prac.memoPaused = false;
+  prac.recallElapsed = 0;
+  prac.recallPaused = false;
+  if (prac.memoTimerId) clearInterval(prac.memoTimerId);
+  if (prac.recallTimerId) clearInterval(prac.recallTimerId);
+
+  // UI
+  document.getElementById("pracSetup").classList.add("hidden");
+  document.getElementById("pracMemo").classList.remove("hidden");
+  document.getElementById("pracRecall").classList.add("hidden");
+  document.getElementById("pracResults").classList.remove("active");
+  document.getElementById("pracResults").style.display = "none";
+
+  showMemoGroup();
+  startMemoTimer();
+}
+
+function showMemoGroup() {
+  const group = prac.groups[prac.groupIndex] || [];
+  const container = document.getElementById("memoGroupCards");
+
+  // Size depends on group size: fewer cards → larger cards
+  // 1 → big, 2 → md, 3–4 → md2, 5 → xs (still larger than buttons)
+  let size = "md";
+  if (prac.groupSize === 1) size = "big";
+  else if (prac.groupSize === 2) size = "md";
+  else if (prac.groupSize <= 4) size = "md2";
+  else size = "xs";
+
+  container.innerHTML = group.map(c => renderCard(c, size)).join("");
+
+  const shown = Math.min((prac.groupIndex + 1) * prac.groupSize, prac.totalCards);
+  const pct = (shown / prac.totalCards) * 100;
+  document.getElementById("memoProgressFill").style.width = pct + "%";
+  document.getElementById("memoProgressText").textContent = `${shown} / ${prac.totalCards} (группа ${prac.groupIndex + 1} / ${prac.groups.length})`;
+
+  document.getElementById("memoPrevBtn").disabled = prac.groupIndex === 0;
+  document.getElementById("memoNextBtn").disabled = prac.groupIndex >= prac.groups.length - 1;
+}
+
+function memoNextGroup() {
+  if (prac.groupIndex < prac.groups.length - 1) {
+    prac.groupIndex++;
+    showMemoGroup();
+  }
+}
+
+function memoPrevGroup() {
+  if (prac.groupIndex > 0) {
+    prac.groupIndex--;
+    showMemoGroup();
+  }
+}
+
+function toggleProgress() {
+  const show = document.getElementById("showProgress").checked;
+  document.getElementById("memoProgressWrap").style.display = show ? "block" : "none";
+}
+
+function startMemoTimer() {
+  prac.memoStartTs = Date.now();
+  updateMemoTimerDisplay();
+
+  if (prac.memoLimitSec === 0) {
+    document.getElementById("memoTimer").textContent = "∞";
+    document.getElementById("memoTimer").className = "timer-display";
+    return;
+  }
+
+  prac.memoTimerId = setInterval(() => {
+    if (prac.memoPaused) return;
+    const elapsed = prac.memoElapsed + (Date.now() - prac.memoStartTs) / 1000;
+    const left = prac.memoLimitSec - elapsed;
+    updateMemoTimerDisplay(left);
+    if (left <= 0) {
+      clearInterval(prac.memoTimerId);
+      prac.memoTimerId = null;
+      goToRecall();
+    }
+  }, 200);
+}
+
+function updateMemoTimerDisplay(left) {
+  const el = document.getElementById("memoTimer");
+  if (prac.memoLimitSec === 0) {
+    el.textContent = "∞";
+    el.className = "timer-display";
+    return;
+  }
+  if (left === undefined) {
+    const elapsed = prac.memoElapsed + (prac.memoPaused ? 0 : (Date.now() - prac.memoStartTs) / 1000);
+    left = prac.memoLimitSec - elapsed;
+  }
+  el.textContent = formatTimer(left);
+  el.className = "timer-display";
+  if (left <= 30) el.classList.add("danger");
+  else if (left <= 60) el.classList.add("warning");
+}
+
+function toggleMemoPause() {
+  const btn = document.getElementById("memoPauseBtn");
+  if (prac.memoPaused) {
+    // resume
+    prac.memoPaused = false;
+    prac.memoStartTs = Date.now();
+    btn.textContent = "Пауза";
+    if (prac.memoLimitSec > 0 && !prac.memoTimerId) {
+      startMemoTimer();
+    }
+  } else {
+    // pause
+    prac.memoPaused = true;
+    prac.memoElapsed += (Date.now() - prac.memoStartTs) / 1000;
+    btn.textContent = "Продолжить";
+  }
+}
+
+function skipToRecall() {
+  if (prac.memoTimerId) {
+    clearInterval(prac.memoTimerId);
+    prac.memoTimerId = null;
+  }
+  if (!prac.memoPaused) {
+    prac.memoElapsed += (Date.now() - prac.memoStartTs) / 1000;
+  }
+  goToRecall();
+}
+
+function goToRecall() {
+  document.getElementById("pracMemo").classList.add("hidden");
+  document.getElementById("pracRecall").classList.remove("hidden");
+
+  // Pool always looks like a full deck (no hint which cards are in the sequence)
+  // Partial mode: every card available once (as if 1 deck)
+  // Full/multi decks: counts from actual sequence
+  prac.poolCounts = {};
+  if (prac.partial) {
+    DATA.forEach(c => {
+      prac.poolCounts[cardKey(c)] = 1;
+    });
+  } else {
+    DATA.forEach(c => {
+      prac.poolCounts[cardKey(c)] = 0;
+    });
+    prac.sequence.forEach(c => {
+      const k = cardKey(c);
+      prac.poolCounts[k] = (prac.poolCounts[k] || 0) + 1;
+    });
+  }
+
+  // Always full ordered deck for the fan
+  const suitOrder = { "Пики": 0, "Черви": 1, "Трефы": 2, "Бубны": 3 };
+  const rankOrder = { "А": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "В": 11, "Д": 12, "К": 13 };
+  prac.poolCards = DATA.slice().sort((a, b) => {
+    const s = suitOrder[a.suit] - suitOrder[b.suit];
+    if (s !== 0) return s;
+    return rankOrder[a.rank] - rankOrder[b.rank];
+  });
+
+  prac.slots = new Array(prac.totalCards).fill(null);
+  prac.placedCount = 0;
+  selectedKey = null;
+  fanFocusIndex = -1;
+
+  // Show dock
+  const dock = document.getElementById("poolDock");
+  if (dock) dock.classList.add("visible");
+
+  renderSlots();
+  renderPool();
+  startRecallTimer();
+  // Reposition fan after layout
+  requestAnimationFrame(() => layoutFan());
+}
+
+function renderSlots() {
+  const grid = document.getElementById("slotsGrid");
+  let html = "";
+  for (let i = 0; i < prac.totalCards; i++) {
+    const card = prac.slots[i];
+    html += `<div class="slot ${card ? "filled" : ""}" data-slot="${i}">
+      <span class="slot-num">${i + 1}</span>
+      ${card ? renderCard(card, "xs") : ""}
+    </div>`;
+  }
+  grid.innerHTML = html;
+
+  grid.querySelectorAll(".slot").forEach(slotEl => {
+    const idx = parseInt(slotEl.dataset.slot, 10);
+
+    // Native HTML5 DnD (desktop fallback)
+    slotEl.addEventListener("dragover", onSlotDragOver);
+    slotEl.addEventListener("dragleave", onSlotDragLeave);
+    slotEl.addEventListener("drop", (e) => onSlotDrop(e, idx));
+
+    // Tap / click
+    slotEl.addEventListener("click", (e) => {
+      if (suppressClick) return;
+      onSlotInteract(idx);
+    });
+  });
+}
+
+let fanFocusIndex = -1;
+let longPressTimer = null;
+
+function renderPool() {
+  const grid = document.getElementById("poolGrid");
+  const multiDeck = prac.decks > 1;
+  // Always show remaining cards only (count > 0). Partial starts with all 52 at count 1 — looks like 1 full deck, no hint.
+  let html = "";
+  let visibleIdx = 0;
+  const visibleCards = [];
+  prac.poolCards.forEach((c) => {
+    const k = cardKey(c);
+    const cnt = prac.poolCounts[k] || 0;
+    if (cnt <= 0) return;
+    visibleCards.push(c);
+    const selected = (selectedKey === k) ? "selected" : "";
+    const showCount = multiDeck ? "show-count" : "";
+    const badge = multiDeck ? `<div class="count-badge">x${cnt}</div>` : "";
+    html += `<div class="pool-item ${c.color} ${selected} ${showCount}" data-key="${k}" data-idx="${visibleIdx}" data-suit="${c.suit}">
+      <div class="fan-card" data-key="${k}" data-idx="${visibleIdx}">
+        <span class="fan-rank">${c.rank}</span>
+        <span class="fan-suit">${c.symbol}</span>
+        ${badge}
+      </div>
+    </div>`;
+    visibleIdx++;
+  });
+  grid.innerHTML = html;
+  document.getElementById("poolStats").textContent = `Использовано: ${prac.placedCount} / ${prac.totalCards}`;
+
+  if (fanFocusIndex >= visibleIdx) fanFocusIndex = -1;
+
+  layoutFan();
+  renderSuitMarkers(visibleCards);
+  updatePoolPreview();
+  bindFanPointerEvents(grid);
+}
+
+function renderSuitMarkers(visibleCards) {
+  const el = document.getElementById("poolSuitMarkers");
+  if (!el) return;
+  if (!visibleCards || !visibleCards.length) {
+    el.innerHTML = "";
+    return;
+  }
+  const L = getFanLayout();
+  if (!L) {
+    el.innerHTML = "";
+    return;
+  }
+  // Group contiguous suits and place a marker at the center of each group
+  const groups = [];
+  let cur = null;
+  visibleCards.forEach((c, i) => {
+    if (!cur || cur.suit !== c.suit) {
+      cur = { suit: c.suit, symbol: c.symbol, color: c.color, start: i, end: i };
+      groups.push(cur);
+    } else {
+      cur.end = i;
+    }
+  });
+  el.innerHTML = groups.map(g => {
+    const mid = (g.start + g.end) / 2;
+    const x = L.startX + mid * L.step + L.cardW / 2;
+    return `<span class="pool-suit-marker ${g.color}" style="left:${x}px">${g.symbol}</span>`;
+  }).join("");
+}
+
+function isTouchUI() {
+  try {
+    return window.matchMedia("(hover: none), (pointer: coarse)").matches;
+  } catch (_) {
+    return ("ontouchstart" in window);
+  }
+}
+
+function updatePoolPreview() {
+  const cardEl = document.getElementById("poolPreviewCard");
+  const nameEl = document.getElementById("poolPreviewName");
+  const hintEl = document.getElementById("poolPreviewHint");
+  if (!cardEl || !nameEl || !hintEl) return;
+
+  const touch = isTouchUI();
+
+  let key = null;
+  if (selectedKey) {
+    key = selectedKey;
+  } else if (fanFocusIndex >= 0) {
+    const item = getPoolItemByFocusIndex(fanFocusIndex);
+    if (item) key = item.dataset.key;
+  }
+
+  if (!key) {
+    cardEl.className = "pool-preview-card empty";
+    cardEl.innerHTML = touch ? "" : `<div class="card-xs black" style="opacity:0.4;border-style:dashed;"></div>`;
+    nameEl.className = "pool-preview-name";
+    nameEl.textContent = "—";
+    hintEl.textContent = touch
+      ? "Коснитесь карты · тап — выбрать · тянуть вверх — в слот"
+      : "Наведите или коснитесь карты в веере";
+    return;
+  }
+
+  const template = prac.poolCards.find(c => cardKey(c) === key);
+  if (!template) return;
+
+  const cnt = prac.poolCounts[key] || 0;
+  cardEl.className = "pool-preview-card";
+  // Card image only on desktop (hidden via CSS on touch; skip rendering to save work)
+  cardEl.innerHTML = touch ? "" : renderCard(template, "xs");
+  nameEl.className = `pool-preview-name ${template.color}`;
+  nameEl.textContent = `${template.symbol}${template.rank}  ·  ${template.suit} ${template.rank}`;
+  if (selectedKey === key) {
+    hintEl.textContent = cnt > 1
+      ? `Выбрано · ×${cnt} · тап по слоту или тяните вверх`
+      : (touch ? "Выбрано · тап по слоту или тяните вверх" : "Выбрано · клик по слоту или перетащите");
+  } else {
+    hintEl.textContent = cnt > 1
+      ? (touch ? `×${cnt} · тап — выбрать · вверх — в слот` : `×${cnt} · клик — выбрать, тянуть — в слот`)
+      : (touch ? "Тап — выбрать · тянуть вверх — в слот" : "Клик — выбрать · тянуть вверх — в слот");
+  }
+}
+
+function getFanBaseWidth() {
+  // Slightly narrower strip = more visible cards, but focus + preview compensate readability
+  if (window.innerWidth >= 1000) return 48;
+  if (window.innerWidth >= 720) return 44;
+  return 32;
+}
+
+function getFanLayout() {
+  const grid = document.getElementById("poolGrid");
+  if (!grid) return null;
+  const items = Array.from(grid.querySelectorAll(".pool-item"));
+  const n = items.length;
+  if (n === 0) return null;
+  const fanW = grid.clientWidth || grid.offsetWidth || 600;
+  const baseW = getFanBaseWidth();
+  // Few cards → full width + gap, centered
+  const FEW = 16;
+  const fewMode = n <= FEW;
+  let cardW, gap, step, startX;
+  if (fewMode) {
+    // Prefer readable strip width with gaps
+    const ideal = Math.min(baseW + 8, 56);
+    const maxBySpace = Math.floor((fanW - 8) / n);
+    cardW = Math.max(24, Math.min(ideal, maxBySpace));
+    gap = Math.min(12, Math.max(4, (fanW - n * cardW) / (n + 1)));
+    const total = n * cardW + (n - 1) * gap;
+    startX = Math.max(0, (fanW - total) / 2);
+    step = cardW + gap;
+  } else {
+    // Overlapping fan: keep a usable minimum step so neighboring ranks are distinguishable
+    cardW = baseW;
+    const minStep = window.innerWidth < 720 ? 14 : 18;
+    const totalSpan = Math.max(fanW - cardW - 4, cardW);
+    let s = n > 1 ? totalSpan / (n - 1) : 0;
+    if (s < minStep && n > 1) {
+      // If too dense, still use available space but accept heavier overlap
+      s = totalSpan / (n - 1);
+    }
+    step = s;
+    startX = 0;
+    gap = 0;
+  }
+  return { grid, items, n, fanW, baseW, cardW, step, startX, fewMode };
+}
+
+/**
+ * Hit-test by BASE layout only (not expanded focus widths).
+ * This prevents the classic "focus expands → cursor is now over a different card" bug.
+ */
+function indexFromFanX(clientX) {
+  const L = getFanLayout();
+  if (!L) return -1;
+  const rect = L.grid.getBoundingClientRect();
+  const x = clientX - rect.left;
+
+  if (L.n === 1) return 0;
+
+  // Voronoi / nearest-center using base positions
+  let best = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < L.n; i++) {
+    const center = L.startX + i * L.step + L.cardW / 2;
+    const d = Math.abs(x - center);
+    if (d < bestDist) {
+      bestDist = d;
+      best = i;
+    }
+  }
+  return best;
+}
+
+function layoutFan() {
+  const L = getFanLayout();
+  if (!L) return;
+  L.items.forEach((item, i) => {
+    item.style.left = (L.startX + i * L.step) + "px";
+    item.style.zIndex = String(i + 1);
+    item.style.width = L.cardW + "px";
+    const card = item.querySelector(".fan-card");
+    if (card) card.style.transform = "";
+  });
+  applyFanFocus();
+}
+
+function applyFanFocus() {
+  const L = getFanLayout();
+  if (!L) return;
+  const { items, baseW, cardW, step, startX, fewMode } = L;
+  const focus = fanFocusIndex;
+
+  // Moderate expansion so neighbors stay readable and hit-targets stay stable
+  const focusW = fewMode
+    ? Math.round(Math.min(cardW * 1.35, cardW + 18))
+    : Math.round(Math.min(baseW * 1.85, 72));
+  const focusScale = fewMode ? 1.08 : 1.14;
+  const RADIUS = fewMode ? 1 : 3;
+
+  items.forEach((item, i) => {
+    item.classList.remove("fan-focus", "fan-near");
+    const card = item.querySelector(".fan-card");
+    let left = startX + i * step;
+    let width = cardW;
+    let scale = 1;
+    let z = i + 1;
+
+    if (focus >= 0) {
+      const dist = Math.abs(i - focus);
+      if (dist === 0) {
+        item.classList.add("fan-focus");
+        width = focusW;
+        scale = focusScale;
+        z = 100;
+        left = startX + i * step - (focusW - cardW) / 2;
+      } else if (dist <= RADIUS) {
+        const t = 1 - dist / (RADIUS + 1);
+        scale = 1 + 0.06 * t;
+        width = Math.round(cardW * (1 + 0.12 * t));
+        z = 40 - dist;
+        // Gentle push away from focus so the active strip is clearer
+        const push = ((focusW - cardW) / 2) * (t * 0.7);
+        left = startX + i * step + (i > focus ? push : -push);
+      }
+    }
+
+    item.style.left = left + "px";
+    item.style.width = width + "px";
+    item.style.zIndex = String(z);
+    if (card) {
+      card.style.transform = scale !== 1 ? `scale(${scale})` : "";
+    }
+  });
+
+  updatePoolPreview();
+}
+
+function bindFanPointerEvents(grid) {
+  // Hit-testing by base X positions (stable, no jump under cursor)
+  grid.onmousemove = (e) => {
+    if (dragState) return;
+    const idx = indexFromFanX(e.clientX);
+    if (idx !== fanFocusIndex) {
+      fanFocusIndex = idx;
+      applyFanFocus();
+    }
+  };
+  grid.onmouseleave = () => {
+    if (dragState) return;
+    // Keep focus if a card is selected
+    if (selectedKey) {
+      const items = grid.querySelectorAll(".pool-item");
+      let found = -1;
+      items.forEach((it, i) => {
+        if (it.dataset.key === selectedKey) found = i;
+      });
+      fanFocusIndex = found;
+    } else {
+      fanFocusIndex = -1;
+    }
+    applyFanFocus();
+  };
+
+  // Single listener on the whole fan — resolves card by base X.
+  // Finger-scrub on touch: slide across the fan without precise taps.
+  // Remove previous listener by cloning is not needed — we overwrite via property? No, addEventListener stacks.
+  // Guard against double-binding after re-renders:
+  if (grid._fanPointerBound) {
+    grid.removeEventListener("pointerdown", grid._fanPointerDownHandler);
+  }
+  const handler = (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (dragState) return;
+    const idx = indexFromFanX(e.clientX);
+    const items = grid.querySelectorAll(".pool-item");
+    if (idx < 0 || !items.length) return;
+    const target = items[idx];
+    if (!target) return;
+    const resolvedKey = target.dataset.key;
+    if (!resolvedKey) return;
+    fanFocusIndex = idx;
+    applyFanFocus();
+    onPoolPointerDown(e, resolvedKey, target);
+  };
+  grid._fanPointerDownHandler = handler;
+  grid._fanPointerBound = true;
+  grid.addEventListener("pointerdown", handler);
+}
+
+// Relayout on resize
+window.addEventListener("resize", () => {
+  if (!document.getElementById("pracRecall").classList.contains("hidden")) {
+    layoutFan();
+    // Rebuild suit markers with new geometry
+    const visible = [];
+    document.querySelectorAll("#poolGrid .pool-item").forEach(it => {
+      const k = it.dataset.key;
+      const t = prac.poolCards.find(c => cardKey(c) === k);
+      if (t) visible.push(t);
+    });
+    renderSuitMarkers(visible);
+  }
+});
+
+/* ===== Single-touch / single-pointer drag state ===== */
+let dragKey = null;
+let selectedKey = null;
+let suppressClick = false;
+let dragState = null; // { key, startX, startY, ghost, moved, itemEl, pointerId }
+const DRAG_THRESHOLD = 12;
+
+function clearAllGhosts() {
+  document.querySelectorAll(".drag-ghost").forEach(g => g.remove());
+}
+
+function endDragCleanup() {
+  clearAllGhosts();
+  document.querySelectorAll(".slot.drag-over").forEach(s => s.classList.remove("drag-over"));
+  document.querySelectorAll(".fan-card.dragging, .card-xs.dragging").forEach(c => c.classList.remove("dragging"));
+  document.body.classList.remove("is-dragging");
+  document.body.style.overflow = "";
+  document.body.style.touchAction = "";
+  dragState = null;
+  dragKey = null;
+}
+
+function createGhost(key, clientX, clientY) {
+  const template = prac.poolCards.find(c => cardKey(c) === key);
+  if (!template) return null;
+  const ghost = document.createElement("div");
+  ghost.className = "drag-ghost";
+  ghost.innerHTML = renderCard(template, "xs");
+  // Offset upward so finger/cursor does not cover the card or the slot under it
+  ghost.style.left = clientX + "px";
+  ghost.style.top = (clientY - 36) + "px";
+  ghost.style.pointerEvents = "none";
+  document.body.appendChild(ghost);
+  return ghost;
+}
+
+function moveGhost(ghost, clientX, clientY) {
+  if (!ghost) return;
+  ghost.style.left = clientX + "px";
+  ghost.style.top = (clientY - 36) + "px";
+}
+
+function getSlotUnderPoint(clientX, clientY) {
+  // Temporarily hide ghost so elementFromPoint hits the slot
+  const ghosts = document.querySelectorAll(".drag-ghost");
+  ghosts.forEach(g => { g.style.visibility = "hidden"; });
+  const el = document.elementFromPoint(clientX, clientY);
+  ghosts.forEach(g => { g.style.visibility = ""; });
+  if (!el) return null;
+  const slot = el.closest(".slot");
+  if (!slot) return null;
+  return parseInt(slot.dataset.slot, 10);
+}
+
+function highlightSlotUnder(clientX, clientY) {
+  document.querySelectorAll(".slot.drag-over").forEach(s => s.classList.remove("drag-over"));
+  const idx = getSlotUnderPoint(clientX, clientY);
+  if (idx !== null && !isNaN(idx)) {
+    const slotEl = document.querySelector(`.slot[data-slot="${idx}"]`);
+    if (slotEl) slotEl.classList.add("drag-over");
+  }
+}
+
+function onPoolDragStart(e, key) {
+  if ((prac.poolCounts[key] || 0) <= 0) {
+    e.preventDefault();
+    return;
+  }
+  selectedKey = null;
+  updatePoolSelectionUI();
+  dragKey = key;
+  e.dataTransfer.setData("text/plain", key);
+  e.dataTransfer.effectAllowed = "move";
+  const card = e.target.closest ? e.target.closest(".card-xs") : null;
+  if (card) card.classList.add("dragging");
+}
+
+function onPoolDragEnd(e) {
+  const card = e.target.closest ? e.target.closest(".card-xs") : e.target;
+  if (card && card.classList) card.classList.remove("dragging");
+  dragKey = null;
+  document.querySelectorAll(".slot.drag-over").forEach(s => s.classList.remove("drag-over"));
+}
+
+function onSlotDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  e.currentTarget.classList.add("drag-over");
+}
+
+function onSlotDragLeave(e) {
+  e.currentTarget.classList.remove("drag-over");
+}
+
+function onSlotDrop(e, slotIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove("drag-over");
+  const key = e.dataTransfer.getData("text/plain") || dragKey;
+  if (!key) return;
+  placeCardInSlot(key, slotIdx);
+  selectedKey = null;
+  updatePoolSelectionUI();
+}
+
+function onSlotInteract(slotIdx) {
+  if (selectedKey) {
+    placeCardInSlot(selectedKey, slotIdx);
+    return;
+  }
+  // Remove card from slot back to pool
+  const card = prac.slots[slotIdx];
+  if (!card) return;
+  const k = cardKey(card);
+  prac.poolCounts[k] = (prac.poolCounts[k] || 0) + 1;
+  prac.slots[slotIdx] = null;
+  prac.placedCount--;
+  // After removing, clear any fan selection/focus so nothing stays highlighted
+  selectedKey = null;
+  fanFocusIndex = -1;
+  renderSlots();
+  renderPool();
+}
+
+function placeCardInSlot(key, slotIdx) {
+  if ((prac.poolCounts[key] || 0) <= 0) return;
+
+  if (prac.slots[slotIdx]) {
+    const old = prac.slots[slotIdx];
+    const oldKey = cardKey(old);
+    prac.poolCounts[oldKey] = (prac.poolCounts[oldKey] || 0) + 1;
+    prac.placedCount--;
+  }
+
+  const template = prac.poolCards.find(c => cardKey(c) === key);
+  if (!template) return;
+
+  prac.slots[slotIdx] = { ...template };
+  prac.poolCounts[key]--;
+  prac.placedCount++;
+
+  // Always clear selection + focus after placing — otherwise on touch the
+  // nearest remaining strip stays expanded ("ближайшая наибольшая")
+  selectedKey = null;
+  fanFocusIndex = -1;
+
+  renderSlots();
+  renderPool();
+}
+
+function updatePoolSelectionUI() {
+  document.querySelectorAll(".pool-item").forEach(item => {
+    item.classList.toggle("selected", item.dataset.key === selectedKey);
+  });
+  // Highlight empty slots as drop/tap targets while a card is selected
+  document.querySelectorAll("#slotsGrid .slot").forEach(slot => {
+    const filled = slot.classList.contains("filled");
+    slot.classList.toggle("tap-target", !!selectedKey && !filled);
+  });
+  updatePoolPreview();
+}
+
+/* ===== Single pointer / touch drag + finger-scrub for mobile =====
+   Modes (touch):
+   - Horizontal move  → scrub focus along the fan (no drag)
+   - Vertical move up → start drag of the focused card
+   - Quick release    → select focused card (tap); second tap deselects
+   - Drag released off slot → card stays selected so a slot tap can finish placement
+   Mouse: small move starts drag; click selects.
+*/
+const SCRUB_AXIS_RATIO = 1.15;   // |dx| must exceed |dy| * this to count as scrub-only
+const DRAG_Y_TOUCH = 22;         // px upward/any vertical to commit drag on touch
+const DRAG_Y_MOUSE = 10;
+const TAP_SLOP = 10;             // movement within this is still a "tap"
+
+function getPoolItemByFocusIndex(idx) {
+  const grid = document.getElementById("poolGrid");
+  if (!grid || idx < 0) return null;
+  const items = grid.querySelectorAll(".pool-item");
+  return items[idx] || null;
+}
+
+function resolveFocusKey() {
+  const focusItem = getPoolItemByFocusIndex(fanFocusIndex);
+  if (focusItem && focusItem.dataset.key) return { key: focusItem.dataset.key, item: focusItem };
+  return null;
+}
+
+function onPoolPointerDown(e, key, itemEl) {
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  if ((prac.poolCounts[key] || 0) <= 0) return;
+  if (dragState) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const idx = parseInt(itemEl.dataset.idx, 10);
+  const isTouch = e.pointerType === "touch" || e.pointerType === "pen";
+  const pointerId = e.pointerId;
+
+  const grid = document.getElementById("poolGrid");
+  const captureEl = grid || itemEl;
+  try { captureEl.setPointerCapture(pointerId); } catch (_) {}
+
+  dragState = {
+    key,
+    startX: e.clientX,
+    startY: e.clientY,
+    ghost: null,
+    moved: false,      // true once drag-to-slot started
+    itemEl,
+    pointerId,
+    isTouch,
+    scrubbed: false,   // true if focus index changed during gesture
+    axis: null         // 'h' | 'v' once decided
+  };
+
+  fanFocusIndex = idx;
+  applyFanFocus();
+
+  const onPointerMove = (ev) => {
+    if (!dragState || ev.pointerId !== pointerId) return;
+    const st = dragState;
+    const dx = ev.clientX - st.startX;
+    const dy = ev.clientY - st.startY;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    const dist = Math.hypot(dx, dy);
+
+    // --- Before drag: decide axis, scrub horizontally ---
+    if (!st.moved) {
+      // Continuous scrub by X (touch & mouse)
+      if (!st.axis || st.axis === "h") {
+        const newIdx = indexFromFanX(ev.clientX);
+        if (newIdx >= 0 && newIdx !== fanFocusIndex) {
+          fanFocusIndex = newIdx;
+          const target = getPoolItemByFocusIndex(newIdx);
+          if (target) {
+            st.key = target.dataset.key;
+            st.itemEl = target;
+            st.scrubbed = true;
+          }
+          applyFanFocus();
+        }
+      }
+
+      // Lock axis after leaving tap slop
+      if (!st.axis && dist > TAP_SLOP) {
+        if (absX > absY * SCRUB_AXIS_RATIO) {
+          st.axis = "h"; // horizontal scrub only
+        } else if (absY > absX * 0.85) {
+          st.axis = "v"; // vertical → will start drag
+        }
+      }
+
+      // Commit to drag
+      const yNeed = st.isTouch ? DRAG_Y_TOUCH : DRAG_Y_MOUSE;
+      const shouldStartDrag = (
+        (st.axis === "v" && absY > yNeed) ||
+        (!st.isTouch && dist > DRAG_THRESHOLD && absY >= absX * 0.6) ||
+        (st.isTouch && absY > yNeed && absY > absX * 0.7)
+      );
+
+      if (shouldStartDrag) {
+        st.moved = true;
+        st.axis = "v";
+        suppressClick = true;
+        ev.preventDefault();
+
+        // Drag the currently focused strip (after any scrub)
+        const resolved = resolveFocusKey();
+        if (resolved) {
+          st.key = resolved.key;
+          st.itemEl = resolved.item;
+        }
+
+        // Keep selection in sync with the card being dragged (helps if drop fails)
+        selectedKey = st.key;
+        updatePoolSelectionUI();
+
+        st.ghost = createGhost(st.key, ev.clientX, ev.clientY);
+        const card = st.itemEl && st.itemEl.querySelector(".fan-card");
+        if (card) card.classList.add("dragging");
+        document.body.classList.add("is-dragging");
+        document.body.style.overflow = "hidden";
+      }
+    }
+
+    if (st.moved && st.ghost) {
+      ev.preventDefault();
+      moveGhost(st.ghost, ev.clientX, ev.clientY);
+      highlightSlotUnder(ev.clientX, ev.clientY);
+    }
+  };
+
+  const onPointerUp = (ev) => {
+    if (!dragState || ev.pointerId !== pointerId) return;
+    const st = dragState;
+
+    document.removeEventListener("pointermove", onPointerMove);
+    document.removeEventListener("pointerup", onPointerUp);
+    document.removeEventListener("pointercancel", onPointerUp);
+    try { captureEl.releasePointerCapture(pointerId); } catch (_) {}
+
+    if (st.moved) {
+      // Drag finished: place if over a slot, otherwise keep card selected for tap-to-slot
+      const slotIdx = getSlotUnderPoint(ev.clientX, ev.clientY);
+      endDragCleanup();
+      if (slotIdx !== null && !isNaN(slotIdx)) {
+        placeCardInSlot(st.key, slotIdx); // clears selection + focus
+      } else {
+        // Incomplete drag → leave card selected so user can tap a slot
+        selectedKey = st.key;
+        const items = document.querySelectorAll("#poolGrid .pool-item");
+        let found = -1;
+        items.forEach((it, i) => { if (it.dataset.key === st.key) found = i; });
+        fanFocusIndex = found;
+        updatePoolSelectionUI();
+        applyFanFocus();
+      }
+      setTimeout(() => { suppressClick = false; }, 100);
+    } else {
+      // Tap or horizontal scrub without drag → select focused card
+      const finalIdx = fanFocusIndex >= 0 ? fanFocusIndex : idx;
+      const finalItem = getPoolItemByFocusIndex(finalIdx);
+      const finalKey = (finalItem && finalItem.dataset.key) || st.key;
+
+      endDragCleanup();
+
+      // Second tap on the same card (no scrub) deselects
+      if (selectedKey === finalKey && !st.scrubbed) {
+        selectedKey = null;
+        fanFocusIndex = -1;
+      } else {
+        selectedKey = finalKey;
+        fanFocusIndex = finalIdx;
+      }
+      updatePoolSelectionUI();
+      applyFanFocus();
+    }
+  };
+
+  document.addEventListener("pointermove", onPointerMove, { passive: false });
+  document.addEventListener("pointerup", onPointerUp);
+  document.addEventListener("pointercancel", onPointerUp);
+}
+
+function startRecallTimer() {
+  prac.recallStartTs = Date.now();
+  prac.recallElapsed = 0;
+  prac.recallPaused = false;
+  document.getElementById("recallPauseBtn").textContent = "Пауза";
+
+  updateRecallTimerDisplay();
+
+  prac.recallTimerId = setInterval(() => {
+    if (prac.recallPaused) return;
+    const elapsed = prac.recallElapsed + (Date.now() - prac.recallStartTs) / 1000;
+    const left = prac.recallLimitSec - elapsed;
+    updateRecallTimerDisplay(left);
+    if (left <= 0) {
+      clearInterval(prac.recallTimerId);
+      prac.recallTimerId = null;
+      finishRecall();
+    }
+  }, 200);
+}
+
+function updateRecallTimerDisplay(left) {
+  const el = document.getElementById("recallTimer");
+  if (left === undefined) {
+    const elapsed = prac.recallElapsed + (prac.recallPaused ? 0 : (Date.now() - prac.recallStartTs) / 1000);
+    left = prac.recallLimitSec - elapsed;
+  }
+  el.textContent = formatTimer(left);
+  el.className = "timer-display";
+  if (left <= 30) el.classList.add("danger");
+  else if (left <= 60) el.classList.add("warning");
+}
+
+function toggleRecallPause() {
+  const btn = document.getElementById("recallPauseBtn");
+  if (prac.recallPaused) {
+    prac.recallPaused = false;
+    prac.recallStartTs = Date.now();
+    btn.textContent = "Пауза";
+  } else {
+    prac.recallPaused = true;
+    prac.recallElapsed += (Date.now() - prac.recallStartTs) / 1000;
+    btn.textContent = "Продолжить";
+  }
+}
+
+function finishRecall() {
+  if (prac.recallTimerId) {
+    clearInterval(prac.recallTimerId);
+    prac.recallTimerId = null;
+  }
+  if (!prac.recallPaused) {
+    prac.recallElapsed += (Date.now() - prac.recallStartTs) / 1000;
+  }
+
+  // Cleanup touch/drag state
+  endDragCleanup();
+  selectedKey = null;
+  suppressClick = false;
+
+  // Compute results
+  let correct = 0;
+  const details = [];
+  for (let i = 0; i < prac.totalCards; i++) {
+    const expected = prac.sequence[i];
+    const placed = prac.slots[i];
+    const isOk = placed && cardKey(placed) === cardKey(expected);
+    if (isOk) correct++;
+    details.push({ pos: i + 1, expected, placed, correct: isOk });
+  }
+
+  document.getElementById("pracRecall").classList.add("hidden");
+  const dock = document.getElementById("poolDock");
+  if (dock) dock.classList.remove("visible");
+
+  const res = document.getElementById("pracResults");
+  res.style.display = "block";
+  res.classList.add("active");
+
+  const accuracy = prac.totalCards ? Math.round(correct / prac.totalCards * 100) : 0;
+  document.getElementById("pracStatsBox").innerHTML = `
+    <div><strong>Карт:</strong> ${prac.totalCards}${prac.decks > 1 ? ` (${prac.decks} колод)` : prac.totalCards < 52 ? " (часть колоды)" : ""}</div>
+    <div><strong>Правильно:</strong> ${correct} / ${prac.totalCards} (${accuracy}%)</div>
+    <div><strong>Время запоминания:</strong> ${formatTime(prac.memoElapsed * 1000)}</div>
+    <div><strong>Время вспоминания:</strong> ${formatTime(prac.recallElapsed * 1000)}</div>
+    <div><strong>Лимит запоминания:</strong> ${prac.memoLimitSec === 0 ? "без лимита" : formatTime(prac.memoLimitSec * 1000)}</div>
+  `;
+
+  const grid = document.getElementById("pracResultGrid");
+  grid.innerHTML = details.map(d => {
+    const cls = d.correct ? "correct" : (d.placed ? "wrong" : "empty");
+    return `<div class="prac-result-item ${cls}">
+      <div class="pos">#${d.pos}</div>
+      ${d.placed ? renderCard(d.placed, "xs") : `<div class="card-xs" style="opacity:0.3;border-style:dashed;"></div>`}
+      ${!d.correct ? `<div class="expected">ожид: ${d.expected.symbol}${d.expected.rank}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+function resetPractice() {
+  if (prac.memoTimerId) clearInterval(prac.memoTimerId);
+  if (prac.recallTimerId) clearInterval(prac.recallTimerId);
+  prac.memoTimerId = null;
+  prac.recallTimerId = null;
+
+  // Cleanup touch/drag state
+  endDragCleanup();
+  selectedKey = null;
+  suppressClick = false;
+  fanFocusIndex = -1;
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+
+  const dock = document.getElementById("poolDock");
+  if (dock) dock.classList.remove("visible");
+
+  document.getElementById("pracSetup").classList.remove("hidden");
+  document.getElementById("pracMemo").classList.add("hidden");
+  document.getElementById("pracRecall").classList.add("hidden");
+  document.getElementById("pracResults").classList.remove("active");
+  document.getElementById("pracResults").style.display = "none";
+}
+
+// Keyboard navigation
+document.addEventListener("keydown", function(e) {
+  // Ignore when typing in inputs/selects
+  const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+  if (tag === "input" || tag === "textarea" || tag === "select") return;
+
+  const pracMemoVisible = !document.getElementById("pracMemo").classList.contains("hidden");
+  const pracRecallVisible = !document.getElementById("pracRecall").classList.contains("hidden");
+  const assocActive = document.getElementById("tab-assoc").classList.contains("active");
+  const trainingVisible = !document.getElementById("trainingArea").classList.contains("hidden");
+
+  // === PRACTICE ===
+  if (pracMemoVisible) {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      memoNextGroup();
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      memoPrevGroup();
+    } else if (e.key === " " || e.code === "Space") {
+      e.preventDefault();
+      toggleMemoPause();
+    }
+    return;
+  }
+
+  if (pracRecallVisible) {
+    if (e.key === " " || e.code === "Space") {
+      e.preventDefault();
+      toggleRecallPause();
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      const items = document.querySelectorAll("#poolGrid .pool-item");
+      if (!items.length) return;
+      let idx = fanFocusIndex;
+      if (idx < 0 && selectedKey) {
+        items.forEach((it, i) => { if (it.dataset.key === selectedKey) idx = i; });
+      }
+      if (idx < 0) idx = 0;
+      else if (e.key === "ArrowLeft") idx = Math.max(0, idx - 1);
+      else idx = Math.min(items.length - 1, idx + 1);
+      fanFocusIndex = idx;
+      selectedKey = items[idx].dataset.key;
+      updatePoolSelectionUI();
+      applyFanFocus();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      selectedKey = null;
+      fanFocusIndex = -1;
+      updatePoolSelectionUI();
+      applyFanFocus();
+    }
+    return;
+  }
+
+  // === ASSOCIATIONS (no Space) ===
+  if (assocActive && trainingVisible) {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      submitAndNext();
+    }
+    // ArrowLeft intentionally not bound (no history of previous cards)
+  }
+});
+
+restart();
+onDecksChange();
+</script>
+</body>
+</html>
