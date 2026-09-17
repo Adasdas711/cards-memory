@@ -2213,19 +2213,23 @@ function startPractice() {
   prac.decks = decks === 0 ? 1 : decks; // number of per-deck recall tabs when not partial
 
   // Build sequence
+  // - Fewer cards than one deck: shuffle a single deck once, then cut to the requested count.
+  // - Exactly one deck: shuffle a single deck once.
+  // - More than one deck: shuffle a FRESH deck independently for each one, and
+  //   append each shuffled 52-card block after the previous. Decks are never
+  //   globally interleaved with each other — each deck is its own contiguous,
+  //   independently-random block in the memorized sequence.
   let seq = [];
   if (decks === 0 || totalCards < 52) {
-    // Random unique subset of full deck
     const shuffled = shuffle(DATA.map((c, i) => ({ ...c, _id: `0_${i}`, _deck: 0 })));
     seq = shuffled.slice(0, totalCards);
+  } else if (decks === 1) {
+    seq = shuffle(DATA.map((c, i) => ({ ...c, _id: `0_${i}`, _deck: 0 })));
   } else {
-    // Full decks
     for (let d = 0; d < decks; d++) {
-      DATA.forEach((c, i) => {
-        seq.push({ ...c, _id: `${d}_${i}`, _deck: d });
-      });
+      const deckShuffled = shuffle(DATA.map((c, i) => ({ ...c, _id: `${d}_${i}`, _deck: d })));
+      seq = seq.concat(deckShuffled);
     }
-    seq = shuffle(seq);
   }
   prac.sequence = seq;
 
