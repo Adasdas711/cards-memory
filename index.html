@@ -699,6 +699,58 @@
     padding-bottom: 320px; /* space for fixed dock + preview */
   }
 
+  /* Per-deck tabs during recall (1+ deck mode) */
+  .deck-tabs {
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+    justify-content: center;
+  }
+
+  .deck-tabs.visible { display: flex; }
+
+  .deck-tab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 14px;
+    min-height: 44px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.82rem;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  .deck-tab-btn:hover { border-color: #666; }
+  .deck-tab-btn:active { background: #3a3a3a; }
+
+  .deck-tab-btn.active {
+    background: var(--surface2);
+    border-color: var(--blue);
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .deck-tab-btn.done:not(.active) {
+    border-color: var(--green);
+    color: #9fdcb5;
+  }
+
+  .deck-tab-count {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .deck-tab-btn.active .deck-tab-count { color: #cbd8e0; }
+  .deck-tab-btn.done:not(.active) .deck-tab-count { color: #9fdcb5; }
+
   .slots-area {
     margin-bottom: 12px;
   }
@@ -1452,7 +1504,8 @@
   <div id="pracSetup" class="setup-panel">
     <h2>Практика запоминания колод</h2>
     <div class="info-box">
-      Запомните последовательность карт (целые колоды или часть одной), затем расставьте их по порядку.
+      Запомните последовательность карт (целые колоды или часть одной), затем расставьте их по порядку.<br>
+      При 1 и более колодах на этапе вспоминания у каждой колоды — своя вкладка и свой полный набор из 52 карт (без повторов). Между вкладками переключайтесь вручную.
     </div>
 
     <div class="setup-row">
@@ -1551,8 +1604,10 @@
       <div class="phase-label">Фаза вспоминания — расставьте карты по порядку</div>
       <div class="timer-display" id="recallTimer">15:00</div>
 
+      <div class="deck-tabs" id="deckTabs"></div>
+
       <div class="slots-area">
-        <h3>Последовательность (слоты)</h3>
+        <h3 id="slotsAreaTitle">Последовательность (слоты)</h3>
         <div class="slots-grid" id="slotsGrid"></div>
       </div>
 
@@ -1569,7 +1624,7 @@
     <!-- Fixed bottom fan pool -->
     <div class="pool-dock" id="poolDock">
       <div class="pool-dock-header">
-        <span>Колода</span>
+        <span id="poolDockLabel">Колода</span>
         <span class="pool-stats" id="poolStats">Использовано: 0 / 0</span>
       </div>
       <div class="pool-preview-wrap" id="poolPreviewWrap">
@@ -2061,10 +2116,17 @@ let prac = {
   recallPaused: false,
   recallTimerId: null,
   recallStartTs: null,
-  slots: [],             // array of card ids or null
-  poolCounts: {},        // key: "suit|rank" -> remaining count
-  poolCards: [],         // unique card templates for pool display
-  placedCount: 0
+  slots: [],             // array of card ids or null (ACTIVE deck's slots — alias into perDeck[activeDeck] when usePerDeck)
+  poolCounts: {},        // key: "suit|rank" -> remaining count (ACTIVE deck's pool)
+  poolCards: [],         // unique card templates for pool display (shared across decks)
+  placedCount: 0,        // ACTIVE deck's placed count
+
+  // 1+ deck mode: each full deck gets its own tab with its own 52-card
+  // pool (no repeats) and its own 52 slots, so the athlete has to switch
+  // decks manually — matching how it works in real card memorization.
+  usePerDeck: false,
+  perDeck: [],           // [{ seq, slots, poolCounts, placedCount }, ...] one per deck
+  activeDeck: 0
 };
 
 function cardKey(c) {
@@ -2148,7 +2210,7 @@ function startPractice() {
   prac.groupSize = groupSize;
   prac.totalCards = totalCards;
   prac.partial = (decks === 0);
-  prac.decks = decks === 0 ? 1 : decks; // multi-badge only when decks > 1
+  prac.decks = decks === 0 ? 1 : decks; // number of per-deck recall tabs when not partial
 
   // Build sequence
   let seq = [];
@@ -2308,25 +2370,7 @@ function goToRecall() {
   document.getElementById("pracMemo").classList.add("hidden");
   document.getElementById("pracRecall").classList.remove("hidden");
 
-  // Pool always looks like a full deck (no hint which cards are in the sequence)
-  // Partial mode: every card available once (as if 1 deck)
-  // Full/multi decks: counts from actual sequence
-  prac.poolCounts = {};
-  if (prac.partial) {
-    DATA.forEach(c => {
-      prac.poolCounts[cardKey(c)] = 1;
-    });
-  } else {
-    DATA.forEach(c => {
-      prac.poolCounts[cardKey(c)] = 0;
-    });
-    prac.sequence.forEach(c => {
-      const k = cardKey(c);
-      prac.poolCounts[k] = (prac.poolCounts[k] || 0) + 1;
-    });
-  }
-
-  // Always full ordered deck for the fan
+  // Always full ordered deck templates for the fan (shared across all decks/tabs)
   const suitOrder = { "Пики": 0, "Черви": 1, "Трефы": 2, "Бубны": 3 };
   const rankOrder = { "А": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "В": 11, "Д": 12, "К": 13 };
   prac.poolCards = DATA.slice().sort((a, b) => {
@@ -2335,8 +2379,36 @@ function goToRecall() {
     return rankOrder[a.rank] - rankOrder[b.rank];
   });
 
-  prac.slots = new Array(prac.totalCards).fill(null);
-  prac.placedCount = 0;
+  // "1+ deck" mode (decks selected, not the partial/"часть" mode): cards never
+  // repeat inside one deck, so recall is split into one tab per deck — each
+  // with its own full 52-card pool and its own 52 slots. Switching between
+  // them is manual (via the tab bar), which is the whole point: it's easy to
+  // mix up which deck's cards you're placing when you have to switch.
+  prac.usePerDeck = !prac.partial;
+
+  if (prac.usePerDeck) {
+    prac.perDeck = [];
+    for (let d = 0; d < prac.decks; d++) {
+      const seq = prac.sequence.filter(c => c._deck === d);
+      const poolCounts = {};
+      DATA.forEach(c => { poolCounts[cardKey(c)] = 1; });
+      prac.perDeck.push({
+        seq,
+        slots: new Array(seq.length).fill(null),
+        poolCounts,
+        placedCount: 0
+      });
+    }
+    prac.activeDeck = 0;
+    loadActiveDeck();
+  } else {
+    // Partial mode: unchanged — single pool, every card available once.
+    prac.poolCounts = {};
+    DATA.forEach(c => { prac.poolCounts[cardKey(c)] = 1; });
+    prac.slots = new Array(prac.totalCards).fill(null);
+    prac.placedCount = 0;
+  }
+
   selectedKey = null;
   fanFocusIndex = -1;
 
@@ -2344,6 +2416,7 @@ function goToRecall() {
   const dock = document.getElementById("poolDock");
   if (dock) dock.classList.add("visible");
 
+  renderDeckTabs();
   renderSlots();
   renderPool();
   startRecallTimer();
@@ -2351,10 +2424,88 @@ function goToRecall() {
   requestAnimationFrame(() => layoutFan());
 }
 
+// ----- Per-deck tab helpers (1+ deck mode) -----
+
+function activeSlotCount() {
+  return prac.usePerDeck ? prac.perDeck[prac.activeDeck].seq.length : prac.totalCards;
+}
+
+function loadActiveDeck() {
+  const d = prac.perDeck[prac.activeDeck];
+  prac.slots = d.slots;
+  prac.poolCounts = d.poolCounts;
+  prac.placedCount = d.placedCount;
+}
+
+function saveActiveDeck() {
+  if (!prac.usePerDeck || !prac.perDeck[prac.activeDeck]) return;
+  const d = prac.perDeck[prac.activeDeck];
+  d.slots = prac.slots;
+  d.poolCounts = prac.poolCounts;
+  d.placedCount = prac.placedCount;
+}
+
+function renderDeckTabs() {
+  const wrap = document.getElementById("deckTabs");
+  if (!wrap) return;
+
+  if (!prac.usePerDeck || prac.decks <= 1) {
+    wrap.classList.remove("visible");
+    wrap.innerHTML = "";
+  } else {
+    wrap.classList.add("visible");
+    let html = "";
+    for (let d = 0; d < prac.decks; d++) {
+      const st = prac.perDeck[d];
+      const cnt = st ? st.placedCount : 0;
+      const total = st ? st.seq.length : 52;
+      const cls = ["deck-tab-btn"];
+      if (d === prac.activeDeck) cls.push("active");
+      if (st && total > 0 && cnt === total) cls.push("done");
+      html += `<button type="button" class="${cls.join(" ")}" onclick="switchDeckTab(${d})">Колода ${d + 1}<span class="deck-tab-count">${cnt}/${total}</span></button>`;
+    }
+    wrap.innerHTML = html;
+  }
+
+  const titleEl = document.getElementById("slotsAreaTitle");
+  if (titleEl) {
+    titleEl.textContent = (prac.usePerDeck && prac.decks > 1)
+      ? `Последовательность (слоты) — колода ${prac.activeDeck + 1} из ${prac.decks}`
+      : "Последовательность (слоты)";
+  }
+
+  const dockLabel = document.getElementById("poolDockLabel");
+  if (dockLabel) {
+    dockLabel.textContent = (prac.usePerDeck && prac.decks > 1)
+      ? `Колода ${prac.activeDeck + 1} из ${prac.decks}`
+      : "Колода";
+  }
+}
+
+function switchDeckTab(d) {
+  if (!prac.usePerDeck || d === prac.activeDeck || !prac.perDeck[d]) return;
+
+  // Cleanup any in-flight drag/selection so nothing bleeds into the new tab
+  endDragCleanup();
+  selectedKey = null;
+  fanFocusIndex = -1;
+  suppressClick = false;
+
+  saveActiveDeck();
+  prac.activeDeck = d;
+  loadActiveDeck();
+
+  renderDeckTabs();
+  renderSlots();
+  renderPool();
+  requestAnimationFrame(() => layoutFan());
+}
+
 function renderSlots() {
   const grid = document.getElementById("slotsGrid");
+  const slotCount = activeSlotCount();
   let html = "";
-  for (let i = 0; i < prac.totalCards; i++) {
+  for (let i = 0; i < slotCount; i++) {
     const card = prac.slots[i];
     html += `<div class="slot ${card ? "filled" : ""}" data-slot="${i}">
       <span class="slot-num">${i + 1}</span>
@@ -2384,7 +2535,10 @@ let longPressTimer = null;
 
 function renderPool() {
   const grid = document.getElementById("poolGrid");
-  const multiDeck = prac.decks > 1;
+  // Cards never repeat within a single deck's pool (per-deck tabs in 1+ deck
+  // mode, or the single partial pool) — counts are always 0/1, so no "x2"
+  // badges are needed any more.
+  const multiDeck = false;
   // Always show remaining cards only (count > 0). Partial starts with all 52 at count 1 — looks like 1 full deck, no hint.
   let html = "";
   let visibleIdx = 0;
@@ -2407,7 +2561,7 @@ function renderPool() {
     visibleIdx++;
   });
   grid.innerHTML = html;
-  document.getElementById("poolStats").textContent = `Использовано: ${prac.placedCount} / ${prac.totalCards}`;
+  document.getElementById("poolStats").textContent = `Использовано: ${prac.placedCount} / ${activeSlotCount()}`;
 
   if (fanFocusIndex >= visibleIdx) fanFocusIndex = -1;
 
@@ -2509,6 +2663,10 @@ function getFanBaseWidth() {
   return 32;
 }
 
+// Real playing cards are roughly this wide relative to their height —
+// used so spaced-out fan cards look like actual cards, not thin cut-off strips.
+const CARD_ASPECT = 0.7;
+
 function getFanLayout() {
   const grid = document.getElementById("poolGrid");
   if (!grid) return null;
@@ -2516,23 +2674,30 @@ function getFanLayout() {
   const n = items.length;
   if (n === 0) return null;
   const fanW = grid.clientWidth || grid.offsetWidth || 600;
+  const fanH = grid.clientHeight || grid.offsetHeight || 148;
   const baseW = getFanBaseWidth();
   // Few cards → full width + gap, centered
   const FEW = 16;
   const fewMode = n <= FEW;
-  let cardW, gap, step, startX;
+  let cardW, cardH, gap, step, startX;
   if (fewMode) {
-    // Prefer readable strip width with gaps
-    const ideal = Math.min(baseW + 8, 56);
+    // Size cards by the available height first (using a real card's
+    // proportions), then shrink to fit if there isn't enough horizontal
+    // room — never just clip the width and leave a tall, narrow sliver.
+    const topPad = 8; // matches .pool-item's top offset
+    const maxH = Math.max(60, fanH - topPad);
+    const maxWByHeight = Math.floor(maxH * CARD_ASPECT);
     const maxBySpace = Math.floor((fanW - 8) / n);
-    cardW = Math.max(24, Math.min(ideal, maxBySpace));
-    gap = Math.min(12, Math.max(4, (fanW - n * cardW) / (n + 1)));
+    cardW = Math.max(30, Math.min(maxWByHeight, maxBySpace));
+    cardH = Math.round(cardW / CARD_ASPECT);
+    gap = Math.min(14, Math.max(4, (fanW - n * cardW) / (n + 1)));
     const total = n * cardW + (n - 1) * gap;
     startX = Math.max(0, (fanW - total) / 2);
     step = cardW + gap;
   } else {
     // Overlapping fan: keep a usable minimum step so neighboring ranks are distinguishable
     cardW = baseW;
+    cardH = null; // full-height strip (CSS default) — normal for a tightly overlapping fan
     const minStep = window.innerWidth < 720 ? 14 : 18;
     const totalSpan = Math.max(fanW - cardW - 4, cardW);
     let s = n > 1 ? totalSpan / (n - 1) : 0;
@@ -2544,7 +2709,7 @@ function getFanLayout() {
     startX = 0;
     gap = 0;
   }
-  return { grid, items, n, fanW, baseW, cardW, step, startX, fewMode };
+  return { grid, items, n, fanW, fanH, baseW, cardW, cardH, step, startX, fewMode };
 }
 
 /**
@@ -2580,6 +2745,7 @@ function layoutFan() {
     item.style.left = (L.startX + i * L.step) + "px";
     item.style.zIndex = String(i + 1);
     item.style.width = L.cardW + "px";
+    item.style.height = L.cardH ? (L.cardH + "px") : "";
     const card = item.querySelector(".fan-card");
     if (card) card.style.transform = "";
   });
@@ -2589,7 +2755,7 @@ function layoutFan() {
 function applyFanFocus() {
   const L = getFanLayout();
   if (!L) return;
-  const { items, baseW, cardW, step, startX, fewMode } = L;
+  const { items, baseW, cardW, cardH, step, startX, fewMode } = L;
   const focus = fanFocusIndex;
 
   // Moderate expansion so neighbors stay readable and hit-targets stay stable
@@ -2604,6 +2770,7 @@ function applyFanFocus() {
     const card = item.querySelector(".fan-card");
     let left = startX + i * step;
     let width = cardW;
+    let height = cardH;
     let scale = 1;
     let z = i + 1;
 
@@ -2612,6 +2779,7 @@ function applyFanFocus() {
       if (dist === 0) {
         item.classList.add("fan-focus");
         width = focusW;
+        if (cardH) height = Math.round(focusW / CARD_ASPECT);
         scale = focusScale;
         z = 100;
         left = startX + i * step - (focusW - cardW) / 2;
@@ -2619,6 +2787,7 @@ function applyFanFocus() {
         const t = 1 - dist / (RADIUS + 1);
         scale = 1 + 0.06 * t;
         width = Math.round(cardW * (1 + 0.12 * t));
+        if (cardH) height = Math.round(width / CARD_ASPECT);
         z = 40 - dist;
         // Gentle push away from focus so the active strip is clearer
         const push = ((focusW - cardW) / 2) * (t * 0.7);
@@ -2628,6 +2797,7 @@ function applyFanFocus() {
 
     item.style.left = left + "px";
     item.style.width = width + "px";
+    if (cardH) item.style.height = height + "px";
     item.style.zIndex = String(z);
     if (card) {
       card.style.transform = scale !== 1 ? `scale(${scale})` : "";
@@ -2823,6 +2993,8 @@ function onSlotInteract(slotIdx) {
   // After removing, clear any fan selection/focus so nothing stays highlighted
   selectedKey = null;
   fanFocusIndex = -1;
+  saveActiveDeck();
+  renderDeckTabs();
   renderSlots();
   renderPool();
 }
@@ -2849,6 +3021,8 @@ function placeCardInSlot(key, slotIdx) {
   selectedKey = null;
   fanFocusIndex = -1;
 
+  saveActiveDeck();
+  renderDeckTabs();
   renderSlots();
   renderPool();
 }
@@ -3113,12 +3287,25 @@ function finishRecall() {
   // Compute results
   let correct = 0;
   const details = [];
-  for (let i = 0; i < prac.totalCards; i++) {
-    const expected = prac.sequence[i];
-    const placed = prac.slots[i];
-    const isOk = placed && cardKey(placed) === cardKey(expected);
-    if (isOk) correct++;
-    details.push({ pos: i + 1, expected, placed, correct: isOk });
+  if (prac.usePerDeck) {
+    saveActiveDeck();
+    prac.perDeck.forEach((deckState, dIdx) => {
+      for (let i = 0; i < deckState.seq.length; i++) {
+        const expected = deckState.seq[i];
+        const placed = deckState.slots[i];
+        const isOk = placed && cardKey(placed) === cardKey(expected);
+        if (isOk) correct++;
+        details.push({ deck: dIdx + 1, pos: i + 1, expected, placed, correct: isOk });
+      }
+    });
+  } else {
+    for (let i = 0; i < prac.totalCards; i++) {
+      const expected = prac.sequence[i];
+      const placed = prac.slots[i];
+      const isOk = placed && cardKey(placed) === cardKey(expected);
+      if (isOk) correct++;
+      details.push({ pos: i + 1, expected, placed, correct: isOk });
+    }
   }
 
   document.getElementById("pracRecall").classList.add("hidden");
@@ -3139,14 +3326,26 @@ function finishRecall() {
   `;
 
   const grid = document.getElementById("pracResultGrid");
-  grid.innerHTML = details.map(d => {
-    const cls = d.correct ? "correct" : (d.placed ? "wrong" : "empty");
-    return `<div class="prac-result-item ${cls}">
+  const renderItem = d => `<div class="prac-result-item ${d.correct ? "correct" : (d.placed ? "wrong" : "empty")}">
       <div class="pos">#${d.pos}</div>
       ${d.placed ? renderCard(d.placed, "xs") : `<div class="card-xs" style="opacity:0.3;border-style:dashed;"></div>`}
       ${!d.correct ? `<div class="expected">ожид: ${d.expected.symbol}${d.expected.rank}</div>` : ""}
     </div>`;
-  }).join("");
+
+  if (prac.usePerDeck && prac.decks > 1) {
+    let html = "";
+    for (let dIdx = 1; dIdx <= prac.decks; dIdx++) {
+      const items = details.filter(d => d.deck === dIdx);
+      const deckCorrect = items.filter(d => d.correct).length;
+      html += `<div class="result-section" style="width:100%;">
+        <h3>Колода ${dIdx} (${deckCorrect} / ${items.length})</h3>
+        <div class="prac-result-grid">${items.map(renderItem).join("")}</div>
+      </div>`;
+    }
+    grid.outerHTML = `<div id="pracResultGrid">${html}</div>`;
+  } else {
+    grid.innerHTML = details.map(renderItem).join("");
+  }
 }
 
 function resetPractice() {
@@ -3161,6 +3360,12 @@ function resetPractice() {
   suppressClick = false;
   fanFocusIndex = -1;
   if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+
+  prac.usePerDeck = false;
+  prac.perDeck = [];
+  prac.activeDeck = 0;
+  const deckTabs = document.getElementById("deckTabs");
+  if (deckTabs) { deckTabs.classList.remove("visible"); deckTabs.innerHTML = ""; }
 
   const dock = document.getElementById("poolDock");
   if (dock) dock.classList.remove("visible");
