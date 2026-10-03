@@ -1184,6 +1184,210 @@
 
   .info-box strong { color: var(--text); }
 
+  /* ===== ASSOCIATIONS TRAINER ===== */
+  .assoc-settings {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 6px 12px;
+    padding: 8px 10px;
+    margin-bottom: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .seg-row { display: contents; }
+  .seg-label { font-size: 0.74rem; color: var(--text-dim); white-space: nowrap; }
+  .seg {
+    justify-self: start;
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    background: #232323;
+    border: 1px solid #3a3a3a;
+    border-radius: 7px;
+  }
+  .seg button {
+    min-height: 30px;
+    padding: 4px 12px;
+    background: transparent;
+    border: 0;
+    border-radius: 5px;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .seg button:hover { color: var(--text); }
+  .seg button.active {
+    background: var(--surface2);
+    color: var(--text);
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px #5e5e5e;
+  }
+  .assoc-settings .short { display: none; }
+  #displayArea { display: flex; justify-content: center; width: 100%; }
+  .pair-cards { display: flex; gap: 16px; justify-content: center; }
+  .role-card { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .role-card .role { font-size: 0.74rem; letter-spacing: 0.04em; color: var(--text-dim); }
+  .assoc-display.pa { flex-direction: column; gap: 8px; }
+  .assoc-display .pa-who { font-size: 1.45rem; font-weight: 600; }
+  .assoc-display .pa-act { font-size: 1.1rem; font-weight: 400; color: #7ed6a0; }
+  .tappable { cursor: pointer; }
+  .reveal {
+    width: 100%;
+    max-width: 380px;
+    padding: 12px 14px;
+    background: #262626;
+    border: 1px dashed #555;
+    border-radius: 10px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .reveal .ans-main { font-size: 1.15rem; font-weight: 600; color: var(--text); }
+  .reveal .ans-act { font-weight: 400; color: #7ed6a0; }
+  .reveal .dim { font-size: 0.8rem; color: var(--text-dim); }
+  .res-cards { display: flex; gap: 6px; justify-content: center; }
+  .result-item.pair { max-width: 170px; }
+  @media (max-width: 719px) {
+    .assoc-settings { gap: 5px 8px; padding: 6px 8px; }
+    .seg-label { font-size: 0.7rem; }
+    .seg { justify-self: stretch; display: flex; }
+    .seg button { flex: 1; min-height: 32px; padding: 4px 4px; font-size: 0.76rem; }
+    .assoc-settings .full { display: none; }
+    .assoc-settings .short { display: inline; }
+    .pair-cards { gap: 12px; }
+  }
+
+  /* ===== SYSTEM TABLE (cards + theory) ===== */
+  .sys-wrap {
+    --c-spades: #9ab8d6;
+    --c-hearts: #f08a80;
+    --c-clubs: #7ed6a0;
+    --c-diamonds: #f5be6b;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  }
+  .sys-rule {
+    padding: 14px 16px 12px;
+    background: linear-gradient(180deg, #303030, var(--surface));
+    border-bottom: 1px solid var(--border);
+    font-size: 0.86rem;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .sys-rule .kicker {
+    display: block;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .sys {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+  }
+  .sys th, .sys td {
+    padding: 8px 8px;
+    vertical-align: top;
+    text-align: left;
+    border-top: 1px solid #353535;
+    border-left: 1px solid #353535;
+  }
+  .sys tr > :first-child { border-left: 0; }
+  .sys thead th {
+    border-top: 0;
+    background: #262626;
+    padding: 10px 8px 9px;
+    font-weight: 400;
+  }
+  .sys thead .sym {
+    display: block;
+    font-size: 1.45rem;
+    line-height: 1;
+    font-family: "Apple Symbols", "Segoe UI Symbol", "DejaVu Sans", "Noto Sans Symbols2", sans-serif;
+  }
+  .sys thead .theme {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .sys .rk { width: 38px; text-align: center; vertical-align: middle; background: #262626; }
+  .sys .chip {
+    display: inline-block;
+    min-width: 24px;
+    padding: 3px 0;
+    border: 1px solid #555;
+    border-radius: 5px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface2);
+  }
+  .sys tr.court .chip { border-color: #8a7a4a; color: #e8d9a8; }
+  .sys tr.sep > * { border-top: 2px solid #4a4a4a; }
+  .sys tbody tr:hover td:not(.rk) { background: #2f2f2f; }
+  .sys .s-spades { --suit: var(--c-spades); }
+  .sys .s-hearts { --suit: var(--c-hearts); }
+  .sys .s-clubs { --suit: var(--c-clubs); }
+  .sys .s-diamonds { --suit: var(--c-diamonds); }
+  .sys thead .sym { color: var(--suit); }
+  .sys td.s-hearts, .sys td.s-diamonds { background-color: rgba(231, 76, 60, 0.035); }
+  .sys .img { display: block; font-size: 0.84rem; font-weight: 500; color: var(--text); line-height: 1.25; }
+  .sys .verb { display: block; font-size: 0.7rem; color: var(--text-dim); line-height: 1.25; margin-top: 2px; }
+  .sys .chg {
+    display: block;
+    margin-top: 3px;
+    font-size: 0.78rem;
+    line-height: 1.25;
+    color: var(--suit);
+  }
+  .sys .chg::before { content: "→ "; opacity: 0.6; }
+
+  @media (max-width: 719px) {
+    .sys th, .sys td { padding: 6px 4px; }
+    .sys .rk { width: 28px; }
+    .sys .chip { min-width: 20px; font-size: 0.72rem; }
+    .sys .img { font-size: 0.74rem; }
+    .sys .verb { display: none; }
+    .sys .chg { font-size: 0.7rem; overflow-wrap: anywhere; }
+    .sys .chg::before { content: none; }
+    .sys .img { overflow-wrap: anywhere; }
+    .sys thead .sym { font-size: 1.25rem; }
+    .sys thead .theme { font-size: 0.6rem; letter-spacing: 0.02em; }
+    .sys-rule { padding: 12px 12px 10px; font-size: 0.8rem; }
+  }
+  @media (max-width: 400px) {
+    .sys th, .sys td { padding: 6px 3px; }
+    .sys .rk { width: 24px; }
+    .sys .chip { min-width: 18px; font-size: 0.68rem; }
+    .sys .img { font-size: 0.69rem; }
+    .sys .chg { font-size: 0.65rem; }
+  }
+  @media (max-width: 360px) {
+    .seg button { white-space: normal; font-size: 0.7rem; padding: 3px 2px; }
+    .seg-label { font-size: 0.66rem; }
+  }
+  @media (max-width: 340px) {
+    .sys .img { font-size: 0.6rem; }
+    .sys .chg { font-size: 0.58rem; }
+    .sys thead .theme { font-size: 0.52rem; }
+  }
+
   /* Phones: denser layout + fixed fan dock */
   @media (max-width: 719px) {
     body {
@@ -1432,7 +1636,7 @@
 <div class="tabs">
   <button class="tab-btn active" data-tab="assoc" onclick="switchTab('assoc')">Ассоциации</button>
   <button class="tab-btn" data-tab="practice" onclick="switchTab('practice')">Практика</button>
-  <button class="tab-btn" data-tab="catalog" onclick="switchTab('catalog')">Список карт</button>
+  <button class="tab-btn" data-tab="catalog" onclick="switchTab('catalog')">Карты и теория</button>
 </div>
 
 <!-- TAB: ASSOCIATIONS (old training) -->
@@ -1447,14 +1651,36 @@
     </div>
     <div class="format-help">
       <strong>Формат ответа:</strong><br>
-      • Карта → Ассоциация: достаточно ключевого слова (опечатки и порядок слов учитываются)<br>
-      • Ассоциация → Карта: <code>Пики А</code>, <code>♠А</code>, <code>черви 7</code>, <code>♥7</code>
+      • Образ: достаточно ключевого слова (опечатки учитываются)<br>
+      • Карта: <code>Пики А</code>, <code>♠А</code>, <code>черви 7</code>, <code>♥7</code><br>
+      • Две карты (PA): 1-я — кто (образ), 2-я — что делает (действие)
     </div>
   </div>
 
-  <div class="mode-switch">
-    <button class="mode-btn active" id="modeCardToAssoc" onclick="setMode('cardToAssoc')">Карта → Ассоциация</button>
-    <button class="mode-btn" id="modeAssocToCard" onclick="setMode('assocToCard')">Ассоциация → Карта</button>
+  <div class="assoc-settings" id="assocSettings">
+    <div class="seg-row">
+      <span class="seg-label">Режим</span>
+      <div class="seg" data-key="fmt">
+        <button type="button" data-val="input" onclick="setAssocOpt('fmt','input')">Вводить</button>
+        <button type="button" data-val="show" onclick="setAssocOpt('fmt','show')">Показывать</button>
+      </div>
+    </div>
+    <div class="seg-row">
+      <span class="seg-label">Что</span>
+      <div class="seg" data-key="unit">
+        <button type="button" data-val="one" onclick="setAssocOpt('unit','one')">1 карта</button>
+        <button type="button" data-val="two" onclick="setAssocOpt('unit','two')">2 карты (PA)</button>
+        <button type="button" data-val="mix" onclick="setAssocOpt('unit','mix')">Смешанно</button>
+      </div>
+    </div>
+    <div class="seg-row">
+      <span class="seg-label"><span class="full">Направление</span><span class="short">Направл.</span></span>
+      <div class="seg" data-key="dir">
+        <button type="button" data-val="toAssoc" onclick="setAssocOpt('dir','toAssoc')"><span class="full">Карта → Ассоциация</span><span class="short">Карта → Асс.</span></button>
+        <button type="button" data-val="toCard" onclick="setAssocOpt('dir','toCard')"><span class="full">Ассоциация → Карта</span><span class="short">Асс. → Карта</span></button>
+        <button type="button" data-val="mix" onclick="setAssocOpt('dir','mix')">Смешанно</button>
+      </div>
+    </div>
   </div>
 
   <div id="trainingArea">
@@ -1464,13 +1690,20 @@
     </div>
 
     <div class="main">
-      <div id="displayArea"></div>
+      <div id="displayArea" onclick="if (assoc.fmt === 'show') revealOrNext()"></div>
+      <div id="revealArea" class="reveal hidden"></div>
 
       <div class="input-area">
         <input type="text" id="answerInput" placeholder="Введите ответ..." autocomplete="off">
-        <div class="btn-row">
+        <input type="text" id="answerInput2" class="hidden" placeholder="" autocomplete="off">
+        <div class="btn-row" id="inputBtns">
           <button class="action primary" id="nextBtn" onclick="submitAndNext()">Далее</button>
           <button class="action" id="checkNowBtn" onclick="checkNow()">Проверить</button>
+          <button class="action danger" onclick="restart()">Начать заново</button>
+        </div>
+        <div class="btn-row hidden" id="showBtns">
+          <button class="action primary" id="revealBtn" onclick="revealOrNext()">Показать ответ</button>
+          <button class="action" onclick="showResults()">Закончить</button>
           <button class="action danger" onclick="restart()">Начать заново</button>
         </div>
       </div>
@@ -1481,12 +1714,12 @@
     <h2>Результаты</h2>
     <div class="stats-box" id="statsBox"></div>
 
-    <div class="result-section correct">
+    <div class="result-section correct" id="resCorrect">
       <h3>✓ Правильно (<span id="correctCount">0</span>)</h3>
       <div class="cards-grid" id="correctGrid"></div>
     </div>
 
-    <div class="result-section wrong">
+    <div class="result-section wrong" id="resWrong">
       <h3>✗ Неправильно (<span id="wrongCount">0</span>)</h3>
       <div class="cards-grid" id="wrongGrid"></div>
     </div>
@@ -1657,7 +1890,13 @@
 
 <!-- TAB: CATALOG -->
 <div id="tab-catalog" class="tab-content">
-  <div id="catalogContent"></div>
+  <div class="sys-wrap">
+    <div class="sys-rule">
+      <span class="kicker">PA · пара на локус</span>
+      1-я карта — <strong>кто</strong> (образ), 2-я — <strong>что делает</strong> (действие). Образ 1-й делает с локусом действие 2-й, на локусе остаётся след.
+    </div>
+    <div id="catalogContent"></div>
+  </div>
 </div>
 
 <script>
@@ -1745,12 +1984,26 @@ DATA.forEach(c => {
   }
 });
 
-let mode = "cardToAssoc";
-let deck = [];
+// ===== ASSOCIATIONS TRAINER =====
+// fmt: input | show;  unit: one | two | mix;  dir: toAssoc | toCard | mix
+const ASSOC_PREFS_KEY = "assocPrefs.v1";
+const assoc = { fmt: "input", unit: "one", dir: "toAssoc" };
+try {
+  const saved = JSON.parse(localStorage.getItem(ASSOC_PREFS_KEY) || "{}");
+  ["fmt", "unit", "dir"].forEach(k => { if (typeof saved[k] === "string") assoc[k] = saved[k]; });
+} catch (e) {}
+
+let aItems = [];   // [{ cards: [card] | [card1, card2], dir: "toAssoc" | "toCard" }]
 let index = 0;
 let answers = [];
 let startTime = null;
 let cardStartTime = null;
+let revealed = false;
+
+const $id = id => document.getElementById(id);
+const cardCode = c => c.symbol + c.rank;
+const actionOf = c => SYSTEM[cardCode(c)] || ["", ""];
+const esc = t => String(t).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
 
 function shuffle(arr) {
   const a = [...arr];
@@ -1774,34 +2027,53 @@ function switchTab(name) {
   }
 }
 
-function setMode(m) {
-  mode = m;
-  document.getElementById("modeCardToAssoc").classList.toggle("active", m === "cardToAssoc");
-  document.getElementById("modeAssocToCard").classList.toggle("active", m === "assocToCard");
+function setAssocOpt(key, val) {
+  assoc[key] = val;
+  try { localStorage.setItem(ASSOC_PREFS_KEY, JSON.stringify(assoc)); } catch (e) {}
   restart();
 }
 
+function updateAssocSettingsUI() {
+  document.querySelectorAll("#assocSettings .seg").forEach(seg => {
+    const key = seg.dataset.key;
+    seg.querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.val === assoc[key]));
+  });
+}
+
+// Shuffle the deck and cut it into tasks of 1 or 2 cards (each card appears once)
+function buildAssocItems() {
+  const d = shuffle(DATA);
+  const out = [];
+  let i = 0;
+  while (i < d.length) {
+    let n = assoc.unit === "one" ? 1 : assoc.unit === "two" ? 2 : (Math.random() < 0.5 ? 1 : 2);
+    n = Math.min(n, d.length - i);
+    const dir = assoc.dir === "mix" ? (Math.random() < 0.5 ? "toAssoc" : "toCard") : assoc.dir;
+    out.push({ cards: d.slice(i, i + n), dir });
+    i += n;
+  }
+  return out;
+}
+
 function restart() {
-  deck = shuffle(DATA);
+  aItems = buildAssocItems();
   index = 0;
   answers = [];
   startTime = null;
   cardStartTime = null;
 
-  document.getElementById("trainingArea").classList.remove("hidden");
-  document.getElementById("resultsArea").classList.remove("active");
-  document.getElementById("resultsArea").style.display = "none";
+  $id("trainingArea").classList.remove("hidden");
+  $id("resultsArea").classList.remove("active");
+  $id("resultsArea").style.display = "none";
 
-  updateProgress();
+  updateAssocSettingsUI();
   showCurrent();
-  document.getElementById("answerInput").value = "";
-  document.getElementById("answerInput").focus();
 }
 
 function updateProgress() {
-  const pct = (index / 52) * 100;
-  document.getElementById("progressFill").style.width = pct + "%";
-  document.getElementById("progressText").textContent = `${index} / 52`;
+  const total = aItems.length || 1;
+  $id("progressFill").style.width = (index / total * 100) + "%";
+  $id("progressText").textContent = `${index} / ${aItems.length}`;
 }
 
 function renderCard(card, size = "big") {
@@ -1873,25 +2145,90 @@ function renderCard(card, size = "big") {
     </div>`;
 }
 
+function roleCard(card, label) {
+  return `<div class="role-card">${renderCard(card, "md2")}<span class="role">${label}</span></div>`;
+}
+
 function showCurrent() {
-  if (index >= 52) {
+  if (index >= aItems.length) {
     showResults();
     return;
   }
 
-  const card = deck[index];
-  const area = document.getElementById("displayArea");
+  const it = aItems[index];
+  const [c1, c2] = it.cards;
+  const pair = it.cards.length === 2;
+  const show = assoc.fmt === "show";
+  const area = $id("displayArea");
 
-  if (mode === "cardToAssoc") {
-    area.innerHTML = renderCard(card, "big");
+  if (it.dir === "toAssoc") {
+    area.innerHTML = pair
+      ? `<div class="pair-cards">${roleCard(c1, "1 · кто")}${roleCard(c2, "2 · что делает")}</div>`
+      : renderCard(c1, "big");
   } else {
-    area.innerHTML = `<div class="assoc-display">${card.main}</div>`;
+    area.innerHTML = pair
+      ? `<div class="assoc-display pa"><span class="pa-who">${c1.main}</span><span class="pa-act">${actionOf(c2)[0]}</span></div>`
+      : `<div class="assoc-display">${c1.main}</div>`;
   }
+  area.classList.toggle("tappable", show);
 
-  document.getElementById("answerInput").value = "";
+  const in1 = $id("answerInput"), in2 = $id("answerInput2");
+  in1.value = "";
+  in2.value = "";
+  if (it.dir === "toAssoc") {
+    in1.placeholder = pair ? "Кто — образ 1-й карты" : "Образ карты";
+    in2.placeholder = "Что делает — действие 2-й карты";
+  } else {
+    in1.placeholder = pair ? "1-я карта (♠А, пики 7…)" : "Карта (♠А, пики 7…)";
+    in2.placeholder = "2-я карта";
+  }
+  in1.classList.toggle("hidden", show);
+  in2.classList.toggle("hidden", show || !pair);
+  $id("inputBtns").classList.toggle("hidden", show);
+  $id("showBtns").classList.toggle("hidden", !show);
+
+  revealed = false;
+  $id("revealArea").classList.add("hidden");
+  $id("revealArea").innerHTML = "";
+  $id("revealBtn").textContent = "Показать ответ";
+
   updateProgress();
   cardStartTime = Date.now();
-  document.getElementById("answerInput").focus();
+  if (show) {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  } else {
+    in1.focus();
+  }
+}
+
+function answerHtml(it) {
+  const [c1, c2] = it.cards;
+  if (it.dir === "toCard") {
+    return `<div class="res-cards">${it.cards.map(c => renderCard(c, "sm")).join("")}</div>`;
+  }
+  if (it.cards.length === 1) {
+    const [v, t] = actionOf(c1);
+    return `<span class="ans-main">${c1.main}</span><span class="dim">как 2-я карта: ${v} → ${t}</span>`;
+  }
+  const [v, t] = actionOf(c2);
+  return `<span class="ans-main">${c1.main} <span class="ans-act">${v}</span></span><span class="dim">след на локусе: ${t}</span>`;
+}
+
+// Show mode: first press reveals the answer, second press goes on
+function revealOrNext() {
+  if (index >= aItems.length) return;
+  if (document.activeElement && document.activeElement.tagName === "BUTTON") document.activeElement.blur();
+  if (startTime === null) startTime = Date.now();
+  if (!revealed) {
+    $id("revealArea").innerHTML = answerHtml(aItems[index]);
+    $id("revealArea").classList.remove("hidden");
+    $id("revealBtn").textContent = "Далее";
+    revealed = true;
+    return;
+  }
+  answers.push({ item: aItems[index], timeSpent: Date.now() - cardStartTime });
+  index++;
+  showCurrent();
 }
 
 function normalize(str) {
@@ -1954,61 +2291,177 @@ function fuzzyMatch(user, key) {
   return false;
 }
 
-function isCorrect(card, userInput) {
-  const norm = normalize(userInput);
-  if (!norm) return false;
+// ---- answer checking ----
+function matchImage(card, input) {
+  const n = normalize(input);
+  return !!n && card.keys.some(k => fuzzyMatch(n, k));
+}
 
-  if (mode === "cardToAssoc") {
-    return card.keys.some(k => fuzzyMatch(norm, k));
-  } else {
-    if (card.cardKeys.some(k => fuzzyMatch(norm, k))) return true;
-    const suitNorm = normalize(card.suit);
-    const rankNorm = normalize(card.rank);
-    if (norm.includes(suitNorm) && norm.includes(rankNorm)) return true;
-    if (norm.includes(card.symbol) && norm.includes(rankNorm)) return true;
-    if (fuzzyMatch(norm, card.suit) && fuzzyMatch(norm, card.rank)) return true;
-    return false;
+// Strict card parser: "Пики А", "♠А", "черви 7", "♥7", "10♦", "туз пик", "дама треф"
+function parseCardInput(input) {
+  const s = (input || "").toLowerCase().replace(/ё/g, "е")
+    .replace(/[♠♤]/g, " пик ").replace(/[♥♡❤]/g, " черв ").replace(/[♣♧]/g, " треф ").replace(/[♦♢]/g, " буб ")
+    .replace(/([a-zа-я])(\d)/g, "$1 $2").replace(/(\d)([a-zа-я])/g, "$1 $2");
+  const toks = s.split(/[^0-9a-zа-я]+/).filter(Boolean);
+  let suit = null, rank = null;
+  for (const t of toks) {
+    if (!suit) {
+      if (t.startsWith("пик") || t.startsWith("spade")) { suit = "Пики"; continue; }
+      if (t.startsWith("черв") || t.startsWith("heart")) { suit = "Черви"; continue; }
+      if (t.startsWith("треф") || t.startsWith("крест") || t.startsWith("club")) { suit = "Трефы"; continue; }
+      if (t.startsWith("буб") || t.startsWith("diamond")) { suit = "Бубны"; continue; }
+    }
+    if (!rank) {
+      if (/^(10|[2-9])$/.test(t)) rank = t;
+      else if (["а", "a", "туз", "ace"].includes(t)) rank = "А";
+      else if (["в", "валет", "j", "jack"].includes(t)) rank = "В";
+      else if (["д", "дама", "q", "queen"].includes(t)) rank = "Д";
+      else if (["к", "король", "k", "king"].includes(t)) rank = "К";
+    }
   }
+  return suit && rank ? { suit, rank } : null;
+}
+
+function matchCard(card, input) {
+  const p = parseCardInput(input);
+  return !!p && p.suit === card.suit && p.rank === card.rank;
+}
+
+// Keywords of each card's ACTION (used when the card is 2nd in a PA pair)
+const ACTION_KEYS = {
+  "♠А": ["корой", "кора", "коре", "кору"],
+  "♠2": ["пачку", "наряжает"],
+  "♠3": ["пчел", "пчелы", "рой", "роем"],
+  "♠4": ["засушивает", "засох", "сушит", "сухой"],
+  "♠5": ["вырезает", "надпись", "вася"],
+  "♠6": ["отравляет", "ядом", "яда", "позеленел", "травит", "отрава"],
+  "♠7": ["скалу", "окаменел", "камень", "каменный"],
+  "♠8": ["замораживает", "заморозил", "сосульки", "лед", "мороз"],
+  "♠9": ["цепи", "цепь", "цепях", "кандалы", "заковывает"],
+  "♠10": ["переворачивает", "перевернул", "вверх", "ногами", "кверху"],
+  "♠В": ["чистит", "банан", "очищен", "кожура", "кожуру"],
+  "♠Д": ["вылизывает", "облизывает", "лижет", "слюни"],
+  "♠К": ["откусывает", "откусил", "откушен", "кусок", "кусает", "укус"],
+  "♥А": ["доски", "досками", "заколачивает", "забит"],
+  "♥2": ["уши", "ушами", "лопоухий"],
+  "♥3": ["волосатый", "волосы", "волосами", "шерсть"],
+  "♥4": ["чихает", "чих", "сопли"],
+  "♥5": ["погоны", "погонах"],
+  "♥6": ["уменьшает", "уменьшил", "крошечный", "кроха"],
+  "♥7": ["крюк", "крюком", "крюке", "цепляет"],
+  "♥8": ["влюбляет", "влюблен", "сердечки", "любовь"],
+  "♥9": ["фингал", "подбивает", "синяк"],
+  "♥10": ["усыпляет", "храпит", "храп", "спит", "уснул", "сон"],
+  "♥В": ["разбирает", "разобрал", "детальки", "детали"],
+  "♥Д": ["шприц", "шприцем", "колет", "укол"],
+  "♥К": ["бинтует", "бинты", "бинт", "мумия"],
+  "♣А": ["печать", "печатью", "штамп"],
+  "♣2": ["лампочки", "лампочками", "гирлянда"],
+  "♣3": ["вонь", "воняет", "вонью", "вонючий"],
+  "♣4": ["прожигает", "луч", "лучом", "лучи", "прожжен", "дыра", "дыру"],
+  "♣5": ["зонтик", "трубочка", "трубочку", "коктейль"],
+  "♣6": ["зеркальца", "зеркальцами", "зеркала"],
+  "♣7": ["током", "ток", "искрит", "искры", "электричество"],
+  "♣8": ["плавит", "оплыл", "плавится", "расплавил"],
+  "♣9": ["надувает", "надул", "надут", "раздут", "раздулся"],
+  "♣10": ["конфетти", "серпантин"],
+  "♣В": ["шампанским", "шампанское", "пена", "пеной", "пене"],
+  "♣Д": ["туман", "туманом", "дым", "розовый"],
+  "♣К": ["узлом", "узел", "завязывает", "завязал", "крендель"],
+  "♦А": ["полоску", "полоска", "полосатый", "полоски"],
+  "♦2": ["пружины", "пружинами", "пружина"],
+  "♦3": ["маску", "маска", "маске", "маской", "надевает"],
+  "♦4": ["вытягивает", "вытянут", "вытянул"],
+  "♦5": ["блин", "раскатывает", "раскатал", "плоский"],
+  "♦6": ["взрывает", "взрыв", "взорвал", "сажа", "саже", "сажей"],
+  "♦7": ["крылья", "крыльями", "крыло"],
+  "♦8": ["размножает", "копии", "копия", "клоны"],
+  "♦9": ["рубит", "пополам", "разрубил", "разрубает"],
+  "♦10": ["подковы", "подковывает", "подкова", "подковах"],
+  "♦В": ["торт", "тортом", "крем", "креме"],
+  "♦Д": ["кружит", "голову", "звездочки", "головокружение"],
+  "♦К": ["поводок", "поводке", "ошейник", "ошейнике", "сажает"]
+};
+
+// Every action word (manual keys + verb + trace) → card. A word belongs to the card whose key
+// matches it most specifically, so near-twins (надувает/надевает, полосатый/волосатый) never cross over.
+let ACTION_INDEX = null;
+function getActionIndex() {
+  if (ACTION_INDEX) return ACTION_INDEX;
+  const STOP = new Set(["делает", "ставит", "бьет", "здесь"]);
+  ACTION_INDEX = [];
+  DATA.forEach(c => {
+    const code = cardCode(c);
+    const [v, t] = actionOf(c);
+    const words = new Set((ACTION_KEYS[code] || []).map(normalize));
+    const verb = normalize(v).split(" ")[0];
+    if (verb && verb.length >= 4 && !STOP.has(verb)) words.add(verb);
+    normalize(t).split(" ").forEach(w => { if (w.length >= 4 && !STOP.has(w)) words.add(w); });
+    words.forEach(k => ACTION_INDEX.push({ code, key: k, stem: k.length <= 4 ? k : k.slice(0, Math.max(5, k.length - 2)) }));
+  });
+  return ACTION_INDEX;
+}
+
+function classifyActionWord(w) {
+  let best = null;
+  for (const e of getActionIndex()) {
+    const ok = e.key.length <= 3 ? w === e.key
+      : e.key.length === 4 ? (w.startsWith(e.key) && w.length - e.key.length <= 3)
+      : w.startsWith(e.stem);
+    if (ok && (!best || e.stem.length > best.stem.length)) best = e;
+  }
+  if (best) return best.code;
+  if (w.length < 5) return null;
+  // typo tolerance only when no key matched directly
+  let bestSim = 0, bestCode = null;
+  for (const e of getActionIndex()) {
+    if (e.key.length < 5) continue;
+    const sim = similarity(w, e.key);
+    if (sim > bestSim) { bestSim = sim; bestCode = e.code; }
+  }
+  return bestSim >= 0.82 ? bestCode : null;
+}
+
+function matchAction(card, input) {
+  const n = normalize(input);
+  if (!n) return false;
+  const code = cardCode(card);
+  return n.split(" ").filter(w => w.length >= 3).some(w => classifyActionWord(w) === code);
+}
+
+// One boolean per part: [card] or [who/1st card, action/2nd card]
+function gradeItem(it, a1, a2) {
+  const [c1, c2] = it.cards;
+  if (it.cards.length === 1) return [it.dir === "toAssoc" ? matchImage(c1, a1) : matchCard(c1, a1)];
+  if (it.dir === "toAssoc") return [matchImage(c1, a1), matchAction(c2, a2)];
+  return [matchCard(c1, a1), matchCard(c2, a2)];
+}
+
+function recordAnswer(a1, a2) {
+  if (startTime === null) startTime = Date.now();
+  const it = aItems[index];
+  const parts = gradeItem(it, a1, a2);
+  answers.push({
+    item: it,
+    user: it.cards.length === 2 ? [a1, a2] : [a1],
+    parts,
+    correct: parts.every(Boolean),
+    timeSpent: cardStartTime ? (Date.now() - cardStartTime) : 0
+  });
+  index++;
 }
 
 function submitAndNext() {
-  if (index >= 52) return;
-
-  if (startTime === null) {
-    startTime = Date.now();
-  }
-
-  const card = deck[index];
-  const userAnswer = document.getElementById("answerInput").value.trim();
-  const correct = isCorrect(card, userAnswer);
-  const timeSpent = cardStartTime ? (Date.now() - cardStartTime) : 0;
-
-  answers.push({
-    card,
-    userAnswer: userAnswer || "(пусто)",
-    correct,
-    timeSpent
-  });
-
-  index++;
+  if (assoc.fmt === "show") { revealOrNext(); return; }
+  if (index >= aItems.length) return;
+  recordAnswer($id("answerInput").value.trim(), $id("answerInput2").value.trim());
   showCurrent();
 }
 
 function checkNow() {
-  if (answers.length === 0 && index === 0) {
-    const userAnswer = document.getElementById("answerInput").value.trim();
-    if (userAnswer) {
-      if (startTime === null) startTime = Date.now();
-      const card = deck[index];
-      const timeSpent = cardStartTime ? (Date.now() - cardStartTime) : 0;
-      answers.push({
-        card,
-        userAnswer,
-        correct: isCorrect(card, userAnswer),
-        timeSpent
-      });
-      index++;
-    }
+  if (assoc.fmt === "input" && index < aItems.length) {
+    const a1 = $id("answerInput").value.trim(), a2 = $id("answerInput2").value.trim();
+    if (a1 || a2) recordAnswer(a1, a2);
   }
   showResults();
 }
@@ -2022,80 +2475,162 @@ function formatTime(ms) {
   return `${s} сек`;
 }
 
-function showResults() {
-  const endTime = Date.now();
-  const totalTime = startTime ? (endTime - startTime) : 0;
-  const correctList = answers.filter(a => a.correct);
-  const wrongList = answers.filter(a => !a.correct);
-  const totalAnswered = answers.length;
-
-  document.getElementById("trainingArea").classList.add("hidden");
-  const res = document.getElementById("resultsArea");
-  res.style.display = "block";
-  res.classList.add("active");
-
-  const avg = totalAnswered ? totalTime / totalAnswered : 0;
-  document.getElementById("statsBox").innerHTML = `
-    <div><strong>Отвечено карт:</strong> ${totalAnswered} из 52</div>
-    <div><strong>Правильно:</strong> ${correctList.length} (${totalAnswered ? Math.round(correctList.length / totalAnswered * 100) : 0}%)</div>
-    <div><strong>Неправильно:</strong> ${wrongList.length}</div>
-    <div><strong>Общее время:</strong> ${formatTime(totalTime)}</div>
-    <div><strong>Среднее время на карту:</strong> ${formatTime(avg)}</div>
-  `;
-
-  document.getElementById("correctCount").textContent = correctList.length;
-  document.getElementById("wrongCount").textContent = wrongList.length;
-
-  const cGrid = document.getElementById("correctGrid");
-  cGrid.innerHTML = correctList.length ? correctList.map(a => `
-    <div class="result-item">
-      ${renderCard(a.card, "sm")}
-      <div>${a.card.main}</div>
-      <div class="user-answer">${formatTime(a.timeSpent || 0)}</div>
-    </div>
-  `).join("") : "<div style='color:#666'>Нет</div>";
-
-  const wGrid = document.getElementById("wrongGrid");
-  wGrid.innerHTML = wrongList.length ? wrongList.map(a => `
-    <div class="result-item">
-      ${renderCard(a.card, "sm")}
-      <div>${a.card.main}</div>
-      <div class="user-answer">ваш ответ: ${a.userAnswer}</div>
-      <div class="user-answer">${formatTime(a.timeSpent || 0)}</div>
-    </div>
-  `).join("") : "<div style='color:#666'>Нет</div>";
+function resultItemHtml(a) {
+  const it = a.item;
+  const pair = it.cards.length === 2;
+  const label = pair ? `${it.cards[0].main} · ${actionOf(it.cards[1])[0]}` : it.cards[0].main;
+  const dirTag = it.dir === "toAssoc" ? "карта → асс." : "асс. → карта";
+  let yours = "";
+  if (!a.correct) {
+    yours = pair
+      ? a.user.map((u, i) => `${a.parts[i] ? "✓" : "✗"} ${esc(u || "(пусто)")}`).join("<br>")
+      : esc(a.user[0] || "(пусто)");
+    yours = `<div class="user-answer">ваш ответ:<br>${yours}</div>`;
+  }
+  return `
+    <div class="result-item${pair ? " pair" : ""}">
+      <div class="res-cards">${it.cards.map(c => renderCard(c, "sm")).join("")}</div>
+      <div>${label}</div>
+      ${yours}
+      <div class="user-answer">${dirTag} · ${formatTime(a.timeSpent || 0)}</div>
+    </div>`;
 }
 
-// Catalog
-(function buildCatalog() {
-  const suits = ["Пики", "Черви", "Трефы", "Бубны"];
-  const container = document.getElementById("catalogContent");
-  let html = "";
+function showResults() {
+  const totalTime = startTime ? (Date.now() - startTime) : 0;
+  const show = assoc.fmt === "show";
+  const n = answers.length;
+  const avg = n ? totalTime / n : 0;
 
-  suits.forEach(suitName => {
-    const cards = DATA.filter(c => c.suit === suitName);
-    const theme = THEMES[suitName] || "";
-    html += `<div class="catalog-suit">
-      <h3>${cards[0].symbol} ${suitName} <span class="theme">— ${theme}</span></h3>
-      <div class="catalog-grid">`;
-    cards.forEach(c => {
-      html += `<div class="catalog-item">
-        ${renderCard(c, "sm")}
-        <div class="assoc-label">${c.main}</div>
-      </div>`;
+  $id("trainingArea").classList.add("hidden");
+  const res = $id("resultsArea");
+  res.style.display = "block";
+  res.classList.add("active");
+  $id("resCorrect").classList.toggle("hidden", show);
+  $id("resWrong").classList.toggle("hidden", show);
+
+  if (show) {
+    $id("statsBox").innerHTML = `
+      <div><strong>Просмотрено заданий:</strong> ${n} из ${aItems.length}</div>
+      <div><strong>Общее время:</strong> ${formatTime(totalTime)}</div>
+      <div><strong>Среднее время на задание:</strong> ${formatTime(avg)}</div>`;
+    return;
+  }
+
+  const correctList = answers.filter(a => a.correct);
+  const wrongList = answers.filter(a => !a.correct);
+  $id("statsBox").innerHTML = `
+    <div><strong>Отвечено заданий:</strong> ${n} из ${aItems.length}</div>
+    <div><strong>Правильно:</strong> ${correctList.length} (${n ? Math.round(correctList.length / n * 100) : 0}%)</div>
+    <div><strong>Неправильно:</strong> ${wrongList.length}</div>
+    <div><strong>Общее время:</strong> ${formatTime(totalTime)}</div>
+    <div><strong>Среднее время на задание:</strong> ${formatTime(avg)}</div>`;
+
+  $id("correctCount").textContent = correctList.length;
+  $id("wrongCount").textContent = wrongList.length;
+  $id("correctGrid").innerHTML = correctList.length ? correctList.map(resultItemHtml).join("") : "<div style='color:#666'>Нет</div>";
+  $id("wrongGrid").innerHTML = wrongList.length ? wrongList.map(resultItemHtml).join("") : "<div style='color:#666'>Нет</div>";
+}
+
+// PA system: image = PERSON (card is 1st); [action, trace on the locus] = ACTION (card is 2nd). Key = symbol + rank
+const SYSTEM = {
+  "♠А": ["покрывает корой", "в коре"],            "♠2": ["наряжает в пачку", "в пачке"],
+  "♠3": ["напускает пчёл", "в рое пчёл"],          "♠4": ["засушивает", "засох"],
+  "♠5": ["вырезает надпись", "«Здесь был Вася»"],  "♠6": ["отравляет", "позеленел"],
+  "♠7": ["превращает в скалу", "окаменел"],        "♠8": ["замораживает", "в сосульках"],
+  "♠9": ["заковывает в цепи", "в кандалах"],       "♠10": ["переворачивает", "вверх ногами"],
+  "♠В": ["чистит как банан", "очищен"],            "♠Д": ["вылизывает", "в слюнях"],
+  "♠К": ["откусывает кусок", "откушен"],
+  "♥А": ["заколачивает досками", "забит досками"], "♥2": ["отращивает уши", "лопоухий"],
+  "♥3": ["делает волосатым", "волосатый"],         "♥4": ["чихает", "в соплях"],
+  "♥5": ["нашивает погоны", "в погонах"],          "♥6": ["уменьшает", "крошечный"],
+  "♥7": ["цепляет крюком", "на крюке"],            "♥8": ["влюбляет", "глаза-сердечки"],
+  "♥9": ["подбивает глаз", "фингал"],              "♥10": ["усыпляет", "храпит стоя"],
+  "♥В": ["разбирает", "на детальки"],              "♥Д": ["колет шприцем", "шприц"],
+  "♥К": ["бинтует", "в бинтах"],
+  "♣А": ["ставит печать", "штамп на лбу"],         "♣2": ["обвешивает лампочками", "в лампочках"],
+  "♣3": ["пропитывает вонью", "воняет"],           "♣4": ["прожигает лучом", "прожжён насквозь"],
+  "♣5": ["украшает как коктейль", "зонтик и трубочка"], "♣6": ["обклеивает зеркальцами", "в зеркальцах"],
+  "♣7": ["бьёт током", "искрит"],                  "♣8": ["плавит", "оплыл"],
+  "♣9": ["надувает", "раздут"],                    "♣10": ["засыпает конфетти", "в конфетти"],
+  "♣В": ["обливает шампанским", "в пене"],           "♣Д": ["окутывает туманом", "розовый туман"],
+  "♣К": ["завязывает узлом", "узлом"],
+  "♦А": ["красит в полоску", "в полоску"],         "♦2": ["вставляет пружины", "пружины наружу"],
+  "♦3": ["надевает маску", "в маске"],             "♦4": ["вытягивает", "вытянут"],
+  "♦5": ["раскатывает в блин", "плоский"],                "♦6": ["взрывает", "в саже"],
+  "♦7": ["приделывает крылья", "с крыльями"],      "♦8": ["размножает", "3 копии"],
+  "♦9": ["рубит пополам", "пополам"],              "♦10": ["подковывает", "в подковах"],
+  "♦В": ["бросает торт", "в креме"],               "♦Д": ["кружит голову", "звёздочки"],
+  "♦К": ["сажает на поводок", "в ошейнике"]
+};
+
+// Short names for long images (table cells are narrow)
+const SHORT_NAME = {
+  "маскарадная маска": "маска", "шест цирковой": "шест", "шары для жонглирования": "шары",
+  "изогнутый меч / шашка": "шашка", "манеж / арена": "манеж", "инспектор манежа": "инспектор",
+  "пульт диджея": "пульт DJ", "диско шар": "диско-шар", "барный столик": "барный столик"
+};
+
+// Catalog: the whole system in one table
+(function buildCatalog() {
+  const suits = [
+    { name: "Пики", sym: "♠", cls: "s-spades" },
+    { name: "Черви", sym: "♥︎", cls: "s-hearts" },
+    { name: "Трефы", sym: "♣", cls: "s-clubs" },
+    { name: "Бубны", sym: "♦︎", cls: "s-diamonds" }
+  ];
+  const ranks = ["А", "2", "3", "4", "5", "6", "7", "8", "9", "10", "В", "Д", "К"];
+  const container = document.getElementById("catalogContent");
+  // keep short words (в, на, с, и, о, 3) on the same line as the next word
+  const nb = t => t.replace(/(^| )(в|на|с|и|о|3) /g, "$1$2\u00a0");
+
+  let html = `<table class="sys"><thead><tr><th class="rk"></th>`;
+  suits.forEach(s => {
+    html += `<th class="${s.cls}"><span class="sym">${s.sym}</span><span class="theme">${THEMES[s.name] || ""}</span></th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  ranks.forEach(r => {
+    const rowCls = [];
+    if (r === "2" || r === "В") rowCls.push("sep");
+    if (r === "В" || r === "Д" || r === "К") rowCls.push("court");
+    html += `<tr class="${rowCls.join(" ")}"><td class="rk"><span class="chip">${r}</span></td>`;
+    suits.forEach(s => {
+      const c = DATA.find(d => d.suit === s.name && d.rank === r);
+      const sys = SYSTEM[c.symbol + c.rank] || ["", ""];
+      html += `<td class="${s.cls}">
+        <span class="img">${SHORT_NAME[c.main] || c.main}</span>
+        <span class="verb">${sys[0]}</span>
+        <span class="chg">${nb(sys[1])}</span>
+      </td>`;
     });
-    html += `</div></div>`;
+    html += `</tr>`;
   });
 
+  html += `</tbody></table>`;
   container.innerHTML = html;
 })();
 
-document.getElementById("answerInput").addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    submitAndNext();
-  }
+// Enter: in a pair, the 1st field jumps to the 2nd; otherwise submit
+$id("answerInput").addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const it = aItems[index];
+  if (it && it.cards.length === 2) $id("answerInput2").focus();
+  else submitAndNext();
 });
+$id("answerInput2").addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  submitAndNext();
+});
+// The clock starts with the first keystroke, not with page load
+["answerInput", "answerInput2"].forEach(id => $id(id).addEventListener("input", () => {
+  if (startTime === null) {
+    startTime = Date.now();
+    if (index === 0) cardStartTime = startTime;
+  }
+}));
 
 // ===== PRACTICE LOGIC =====
 let prac = {
@@ -3436,9 +3971,12 @@ document.addEventListener("keydown", function(e) {
     return;
   }
 
-  // === ASSOCIATIONS (no Space) ===
+  // === ASSOCIATIONS ===
   if (assocActive && trainingVisible) {
-    if (e.key === "ArrowRight") {
+    if (assoc.fmt === "show" && (e.key === "Enter" || e.key === " " || e.code === "Space" || e.key === "ArrowRight")) {
+      e.preventDefault();
+      revealOrNext();
+    } else if (e.key === "ArrowRight") {
       e.preventDefault();
       submitAndNext();
     }
@@ -3451,3 +3989,5 @@ onDecksChange();
 </script>
 </body>
 </html>
+
+  
