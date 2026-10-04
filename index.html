@@ -2380,6 +2380,39 @@
   .drag-ghost-lite.drag-ghost-visible { visibility: visible; }
   .pool-item .fan-card.dragging { opacity: 1 !important; }
 
+
+  /* ===== SCREEN-BASED PAGE BREATHING ROOM =====
+     Bottom scroll reserve is set from window.screen.height in JS, not from
+     the browser viewport. This lets the page move down by ~75% of the actual
+     screen height while keeping the added space visually neutral. */
+  :root {
+    --screen-scroll-space: 75vh; /* fallback until JS measures screen.height */
+  }
+
+  body {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  /* A real flex spacer guarantees the full reserve even when page content is short. */
+  body::after {
+    content: "";
+    display: block;
+    width: 100%;
+    height: var(--screen-scroll-space);
+    min-height: var(--screen-scroll-space);
+    flex: 0 0 var(--screen-scroll-space);
+    pointer-events: none;
+    background: transparent;
+  }
+
+  /* Phones get a calm top breathing space without introducing a visible block. */
+  @media (max-width: 719px) {
+    body {
+      padding-top: clamp(56px, calc(48px + env(safe-area-inset-top)), 96px);
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -5023,6 +5056,22 @@ document.addEventListener("keydown", function(e) {
     }
   }
 });
+
+
+// Keep the extra scroll room tied to the physical screen height rather than
+// the current browser viewport (which changes as mobile browser chrome opens/closes).
+function syncScreenBasedPageSpacing() {
+  const physicalScreenHeight = (window.screen && Number(window.screen.height)) || window.innerHeight || 0;
+  const reserve = Math.max(0, Math.round(physicalScreenHeight * 0.75));
+  document.documentElement.style.setProperty('--screen-scroll-space', `${reserve}px`);
+}
+
+syncScreenBasedPageSpacing();
+window.addEventListener('resize', syncScreenBasedPageSpacing, { passive: true });
+window.addEventListener('orientationchange', () => {
+  // Some mobile browsers update screen.height just after the orientation event.
+  requestAnimationFrame(syncScreenBasedPageSpacing);
+}, { passive: true });
 
 restart();
 onDecksChange();
