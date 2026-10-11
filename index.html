@@ -2476,6 +2476,18 @@
     #poolPreviewName { overflow-wrap: anywhere; }
   }
 
+
+  /* Keep more of the recall board visible above the deck. */
+  #poolDock { padding-top: 4px; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+  #poolPreviewWrap { min-height: 80px !important; gap: 16px !important; padding: 6px 12px; }
+  #poolPreviewCard { width: 48px; height: 68px; flex-basis: 48px; }
+  #poolPreviewCard .rank { font-size: 16px; }
+  #poolPreviewCard .suit-small { font-size: 12px; }
+  #poolPreviewCard .suit-center { font-size: 26px; }
+  #poolPreviewName { font-size: 1rem !important; }
+  #poolPreviewCard.empty { display: none !important; }
+  #poolSuitMarkers { height: 22px; }
+
 </style>
 </head>
 <body>
@@ -4255,6 +4267,7 @@ function layoutFan() {
   fanLayoutCache = null;
   const L = getFanLayout();
   if (!L) return;
+  L.grid.style.height = `${L.cardH + 22}px`;
   L.items.forEach((item, i) => resetFanItemToBase(item, i, L));
   appliedFanFocusIndex = -1;
   applyFanFocus();
@@ -4473,6 +4486,9 @@ function createGhost(key, clientX, clientY) {
   for (const property of ["background", "border", "border-radius", "box-shadow", "padding", "display", "overflow"]) {
     ghost.style.setProperty(property, appearance.getPropertyValue(property), "important");
   }
+  ghost.style.setProperty("background", `linear-gradient(145deg, rgba(255,255,255,0.10), transparent 45%, rgba(0,0,0,0.16)), ${appearance.backgroundColor}`, "important");
+  ghost.style.setProperty("border-radius", "12px", "important");
+  ghost.style.setProperty("box-shadow", "0 16px 32px rgba(0,0,0,0.40), 0 4px 10px rgba(0,0,0,0.25)", "important");
   ghost.style.opacity = "1";
   ghost._grabX = Math.max(0, Math.min(rect.width, dragState.startX - rect.left));
   ghost._grabY = Math.max(0, Math.min(rect.height, dragState.startY - rect.top));
