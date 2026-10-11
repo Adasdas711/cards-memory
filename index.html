@@ -953,7 +953,7 @@
 
   #poolGrid {
     max-width: none;
-    height: 172px;
+    height: 192px;
     overflow-x: auto;
     overflow-y: hidden;
     touch-action: pan-x;
@@ -4031,7 +4031,7 @@ function renderSuitMarkers(visibleCards) {
   });
   el.innerHTML = groups.map(g => {
     const mid = (g.start + g.end) / 2;
-    const x = L.startX + mid * L.step + L.cardW / 2 - L.grid.scrollLeft;
+    const x = L.startX + mid * L.step + L.exposed / 2 - L.grid.scrollLeft;
     return `<span class="pool-suit-marker ${g.color}" style="left:${x}px">${g.symbol}</span>`;
   }).join("");
 }
@@ -4148,14 +4148,13 @@ function getFanLayout() {
   const fanW = grid.clientWidth || grid.offsetWidth || 600;
   const fanH = grid.clientHeight || grid.offsetHeight || 148;
 
-  // Equal, non-overlapping cards. On narrow screens the deck scrolls horizontally.
-  const gap = 4;
-  const minWidth = window.innerWidth < 720 ? 44 : 48;
-  const cardW = Math.min(84, Math.max(minWidth, (fanW - gap * (n - 1)) / n));
-  const cardH = Math.min(148, Math.max(112, Math.round(cardW / CARD_ASPECT)));
-  const step = cardW + gap;
-  const startX = Math.max(0, (fanW - (n * cardW + gap * (n - 1))) / 2);
-  const exposed = cardW;
+  // Full-size cards overlap; labels stay within their exposed left edge.
+  const cardW = window.innerWidth < 720 ? 96 : 112;
+  const cardH = Math.round(cardW / CARD_ASPECT);
+  const step = n > 1 ? Math.min(cardW * 0.65, Math.max(28, (fanW - cardW) / (n - 1))) : 0;
+  const startX = Math.max(0, (fanW - (cardW + (n - 1) * step)) / 2);
+  const exposed = n > 1 ? step : cardW;
+  const gap = step - cardW;
   const rect = grid.getBoundingClientRect();
   fanLayoutCache = {
     grid, items, n, fanW, fanH, rectLeft: rect.left,
@@ -4202,7 +4201,7 @@ function resetFanItemToBase(item, i, L) {
   item.classList.remove("fan-focus", "fan-near");
   item.style.left = (L.startX + i * L.step) + "px";
   item.style.zIndex = String(i + 1);
-  item.style.width = (i === L.n - 1 ? L.cardW : L.exposed) + "px";
+  item.style.width = L.cardW + "px";
   item.style.height = L.cardH ? (L.cardH + "px") : "";
   const lm = baseFanLabelMetrics(L);
   item.style.setProperty("--fan-label-x", lm.x + "px");
