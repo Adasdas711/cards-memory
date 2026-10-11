@@ -4413,7 +4413,8 @@ function getReusableDragGhost() {
   dragGhostEl.id = "dragGhost";
   dragGhostEl.className = "drag-ghost drag-ghost-lite black";
   dragGhostEl.style.transform = "translate3d(-200px,-200px,0) translate(-50%,-50%)";
-  dragGhostEl.innerHTML = `<span class="g-rank"></span><span class="g-suit"></span>`;
+  dragGhostEl.innerHTML = `<span class="g-rank"></span>`;
+  dragGhostEl.setAttribute("aria-hidden", "true");
   document.body.appendChild(dragGhostEl);
   return dragGhostEl;
 }
@@ -4454,7 +4455,7 @@ function endDragCleanup() {
 
 function setGhostPositionNow(ghost, clientX, clientY) {
   if (!ghost) return;
-  ghost.style.transform = `translate3d(${Math.round(clientX)}px, ${Math.round(clientY - 36)}px, 0) translate(-50%, -50%)`;
+  ghost.style.transform = `translate3d(${clientX - ghost._grabX}px, ${clientY - ghost._grabY}px, 0)`;
 }
 
 function createGhost(key, clientX, clientY) {
@@ -4463,8 +4464,24 @@ function createGhost(key, clientX, clientY) {
   if (!template) return null;
   const ghost = getReusableDragGhost();
   ghost.className = `drag-ghost drag-ghost-lite drag-ghost-visible ${template.color}`;
-  ghost.querySelector(".g-rank").textContent = template.rank;
-  ghost.querySelector(".g-suit").textContent = template.symbol;
+  const source = dragState && dragState.itemEl.querySelector(".fan-card");
+  if (!source) return null;
+  const rect = source.getBoundingClientRect();
+  const appearance = getComputedStyle(source);
+  ghost.style.setProperty("width", `${rect.width}px`, "important");
+  ghost.style.setProperty("height", `${rect.height}px`, "important");
+  for (const property of ["background", "border", "border-radius", "box-shadow", "padding", "display", "overflow"]) {
+    ghost.style.setProperty(property, appearance.getPropertyValue(property), "important");
+  }
+  ghost.style.opacity = "1";
+  ghost._grabX = Math.max(0, Math.min(rect.width, dragState.startX - rect.left));
+  ghost._grabY = Math.max(0, Math.min(rect.height, dragState.startY - rect.top));
+  const rank = ghost.querySelector(".g-rank");
+  rank.textContent = template.rank;
+  const label = getComputedStyle(source.querySelector(".fan-rank"));
+  for (const property of ["position", "left", "top", "transform", "font-size", "font-weight", "font-family", "line-height", "letter-spacing", "color", "margin"]) {
+    rank.style.setProperty(property, label.getPropertyValue(property));
+  }
   setGhostPositionNow(ghost, clientX, clientY);
   return ghost;
 }
@@ -4677,7 +4694,7 @@ function onPoolPointerDown(e, key, itemEl) {
     axis: null
   };
 
-  requestFanFocus(idx, false);
+  requestFanFocus(idx, true);
 
   let listenersRemoved = false;
   const removeGestureListeners = () => {
