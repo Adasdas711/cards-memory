@@ -951,6 +951,18 @@
     touch-action: none;
   }
 
+  #poolGrid {
+    max-width: none;
+    height: 132px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    touch-action: pan-x;
+    scrollbar-width: thin;
+    scrollbar-color: #666 #202020;
+  }
+  #poolGrid .pool-item, #poolGrid .fan-card { touch-action: pan-x; }
+  #poolSuitMarkers { display: none; }
+
   /* Suit markers under the fan for faster scanning */
   .pool-suit-markers {
     display: block;
@@ -4093,8 +4105,8 @@ function updatePoolPreview() {
   smallSuitEl.textContent = template.symbol;
   centerSuitEl.textContent = template.symbol;
 
-  nameEl.className = `pool-preview-name ${template.color}`;
-  nameEl.textContent = `${template.symbol}${template.rank}  ·  ${template.suit} ${template.rank}`;
+  nameEl.className = "pool-preview-name";
+  nameEl.textContent = `Карта ${template.rank}`;
   if (selectedKey === key) {
     hintEl.textContent = cnt > 1
       ? `Выбрано · ×${cnt} · тап по слоту или тяните вверх`
@@ -4129,29 +4141,14 @@ function getFanLayout() {
   const fanW = grid.clientWidth || grid.offsetWidth || 600;
   const fanH = grid.clientHeight || grid.offsetHeight || 148;
 
-  // IMPORTANT: physical card size NEVER depends on how many cards remain.
-  // Only the horizontal step/overlap changes. This prevents the deck from
-  // suddenly shrinking when the count crosses 26 -> 25 (or any other count).
-  const preferredW = window.innerWidth >= 1400 ? 104
-    : window.innerWidth >= 1000 ? 96
-    : window.innerWidth >= 720 ? 84
-    : 70;
-  const maxWByHeight = Math.max(48, Math.floor((Math.max(72, fanH - 8)) * CARD_ASPECT));
-  const cardW = Math.min(preferredW, maxWByHeight);
-  const cardH = Math.round(cardW / CARD_ASPECT);
-
-  let step = 0;
-  let startX = Math.max(0, (fanW - cardW) / 2);
-  if (n > 1) {
-    // First and last card always stay fully inside the fan width.
-    step = Math.max(1, (fanW - cardW) / (n - 1));
-    startX = 0;
-  }
-
-  // Leave real empty space between the visible strips of overlapping cards.
-  const separation = window.innerWidth >= 720 ? 4 : 1.5;
-  const exposed = n <= 1 ? cardW : Math.max(1, Math.min(cardW, step - separation));
-  const gap = step - exposed;
+  // Equal, non-overlapping cards. On narrow screens the deck scrolls horizontally.
+  const gap = 4;
+  const minWidth = window.innerWidth < 720 ? 32 : 24;
+  const cardW = Math.min(84, Math.max(minWidth, (fanW - gap * (n - 1)) / n));
+  const cardH = Math.min(120, Math.max(64, Math.round(cardW / CARD_ASPECT)));
+  const step = cardW + gap;
+  const startX = Math.max(0, (fanW - (n * cardW + gap * (n - 1))) / 2);
+  const exposed = cardW;
   const rect = grid.getBoundingClientRect();
   fanLayoutCache = {
     grid, items, n, fanW, fanH, rectLeft: rect.left,
@@ -4167,7 +4164,7 @@ function getFanLayout() {
 function indexFromFanX(clientX) {
   const L = getFanLayout();
   if (!L) return -1;
-  const x = clientX - L.grid.getBoundingClientRect().left - L.startX;
+  const x = clientX - L.grid.getBoundingClientRect().left + L.grid.scrollLeft - L.startX;
   if (x < 0 || x > (L.n - 1) * L.step + L.cardW) return -1;
   if (L.n === 1 || L.step <= 0) return 0;
   // Each label sits in the exposed LEFT strip, not at the full card's center.
@@ -4184,8 +4181,8 @@ function baseFanLabelMetrics(L) {
   // each overlapped card, so increasing them does not change card geometry.
   const rankCap = wide ? 25 : (mid ? 22 : 19);
   const suitCap = wide ? 31 : (mid ? 27 : 23);
-  const rank = Math.max(wide ? 17 : 15, Math.min(rankCap, exposed * 0.76));
-  const suit = Math.max(wide ? 20 : 18, Math.min(suitCap, exposed * 0.92));
+  const rank = Math.max(12, Math.min(rankCap, (exposed - 6) * 0.75));
+  const suit = Math.max(14, Math.min(suitCap, (exposed - 6) * 0.92));
   return {
     x: Math.min(L.cardW / 2, exposed * 0.50),
     rank,
@@ -4666,6 +4663,11 @@ function onPoolPointerDown(e, key, itemEl) {
       return;
     }
 
+    if (st.isTouch && grid.scrollWidth > grid.clientWidth && !st.moved) {
+      const dxScroll = Math.abs(ev.clientX - st.startX);
+      const dyScroll = Math.abs(ev.clientY - st.startY);
+      if (dxScroll > dyScroll) return; // Native horizontal scrolling owns this gesture.
+    }
     const dx = ev.clientX - st.startX;
     const dy = ev.clientY - st.startY;
     const absX = Math.abs(dx);
