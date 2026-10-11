@@ -2447,17 +2447,50 @@
     }
   }
 
+
+  #menuToggle {
+    position: fixed; top: max(12px, env(safe-area-inset-top)); left: 16px;
+    z-index: 9500; padding: 10px 16px; min-height: 44px;
+    border: 1px solid #555; border-radius: 10px; background: #292929;
+    color: #eee; font-size: 1rem; cursor: pointer;
+  }
+  #sideMenu {
+    position: fixed; inset: 0 auto 0 0; margin: 0; padding: 24px 18px;
+    width: min(320px, 86vw); height: 100dvh; max-height: 100dvh;
+    border: 0; border-right: 1px solid #444; background: #232323; color: #eee;
+    box-shadow: 12px 0 40px #0008;
+  }
+  #sideMenu::backdrop { background: #0009; }
+  .side-menu-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .side-menu-header h2 { font-size: 1.2rem; }
+  .side-menu-header button { width: 44px; height: 44px; border: 0; border-radius: 8px; background: #333; color: #eee; font-size: 1.8rem; cursor: pointer; }
+  #sideMenu .tabs { display: flex; flex-direction: column; gap: 10px; padding: 0; border: 0; background: none; box-shadow: none; }
+  #sideMenu .tab-btn { flex: none; width: 100%; padding: 18px; text-align: left; border-radius: 10px; }
+  #poolPreviewWrap { gap: 24px !important; padding: 12px 16px; }
+  #poolPreviewCard { display: block !important; width: 96px; height: 138px; flex: 0 0 96px; }
+  #poolPreviewCard .pool-preview-live-card { width: 100% !important; height: 100% !important; }
+  #poolPreviewWrap .pool-preview-info { align-items: flex-start; text-align: left; }
+  @media (max-width: 719px) {
+    #poolPreviewWrap { gap: 20px !important; min-height: 108px; }
+    #poolPreviewCard { width: 64px; height: 92px; flex-basis: 64px; }
+    #poolPreviewName { overflow-wrap: anywhere; }
+  }
+
 </style>
 </head>
 <body>
 
-<h1>Запоминание ассоциаций карт</h1>
+<h1 aria-hidden="true">&nbsp;</h1>
 
-<div class="tabs">
-  <button class="tab-btn active" data-tab="assoc" onclick="switchTab('assoc')">Ассоциации</button>
-  <button class="tab-btn" data-tab="practice" onclick="switchTab('practice')">Практика</button>
-  <button class="tab-btn" data-tab="catalog" onclick="switchTab('catalog')">Теория</button>
-</div>
+<button id="menuToggle" type="button" aria-haspopup="dialog" aria-controls="sideMenu" onclick="openSideMenu()">☰ <span>Меню</span></button>
+<dialog id="sideMenu" aria-labelledby="sideMenuTitle">
+  <div class="side-menu-header"><h2 id="sideMenuTitle">Режимы</h2><button type="button" aria-label="Закрыть меню" onclick="closeSideMenu()">×</button></div>
+  <nav class="tabs" aria-label="Режимы тренировки">
+    <button class="tab-btn active" data-tab="assoc" onclick="switchTab('assoc')">Ассоциации</button>
+    <button class="tab-btn" data-tab="practice" onclick="switchTab('practice')">Практика</button>
+    <button class="tab-btn" data-tab="catalog" onclick="switchTab('catalog')">Теория</button>
+  </nav>
+</dialog>
 
 <!-- TAB: ASSOCIATIONS (old training) -->
 <div id="tab-assoc" class="tab-content active">
@@ -2684,7 +2717,6 @@
         <div class="pool-preview-card empty" id="poolPreviewCard"></div>
         <div class="pool-preview-info">
           <div class="pool-preview-name" id="poolPreviewName">—</div>
-          <div class="pool-preview-hint" id="poolPreviewHint">Наведите или коснитесь карты в веере</div>
         </div>
       </div>
       <div class="pool-suit-markers" id="poolSuitMarkers"></div>
@@ -2873,7 +2905,23 @@ function shuffle(arr) {
   return a;
 }
 
+function openSideMenu() {
+  document.getElementById("sideMenu").showModal();
+}
+
+function closeSideMenu() {
+  const menu = document.getElementById("sideMenu");
+  if (menu.open) menu.close();
+}
+
+document.getElementById("sideMenu").addEventListener("click", e => {
+  if (e.target !== e.currentTarget) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) closeSideMenu();
+});
+
 function switchTab(name) {
+  closeSideMenu();
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
   document.querySelectorAll(".tab-content").forEach(t => t.classList.toggle("active", t.id === "tab-" + name));
   // Hide fixed dock when leaving practice
@@ -4056,8 +4104,7 @@ function isTouchUI() {
 function getPoolPreviewDom() {
   const cardEl = document.getElementById("poolPreviewCard");
   const nameEl = document.getElementById("poolPreviewName");
-  const hintEl = document.getElementById("poolPreviewHint");
-  if (!cardEl || !nameEl || !hintEl) return null;
+  if (!cardEl || !nameEl) return null;
 
   let live = cardEl.querySelector(".pool-preview-live-card");
   if (!live) {
@@ -4073,7 +4120,7 @@ function getPoolPreviewDom() {
   }
 
   return {
-    cardEl, nameEl, hintEl, live,
+    cardEl, nameEl, live,
     rankEl: live.querySelector(".rank"),
     smallSuitEl: live.querySelector(".suit-small"),
     centerSuitEl: live.querySelector(".suit-center")
@@ -4083,8 +4130,7 @@ function getPoolPreviewDom() {
 function updatePoolPreview() {
   const dom = getPoolPreviewDom();
   if (!dom) return;
-  const { cardEl, nameEl, hintEl, live, rankEl, smallSuitEl, centerSuitEl } = dom;
-  const touch = isTouchUI();
+  const { cardEl, nameEl, live, rankEl, smallSuitEl, centerSuitEl } = dom;
 
   let key = null;
   if (fanFocusIndex >= 0) {
@@ -4101,9 +4147,6 @@ function updatePoolPreview() {
     centerSuitEl.textContent = "";
     nameEl.className = "pool-preview-name";
     nameEl.textContent = "Карта не выбрана";
-    hintEl.textContent = touch
-      ? "Коснитесь карты, затем нужного слота. Заполненный слот без выбора — убрать карту."
-      : "Нажмите на карту, затем на нужный слот. Заполненный слот без выбора — убрать карту.";
     return;
   }
 
@@ -4119,16 +4162,7 @@ function updatePoolPreview() {
   centerSuitEl.textContent = template.symbol;
 
   nameEl.className = "pool-preview-name";
-  nameEl.textContent = `Карта ${template.rank}`;
-  if (selectedKey === key) {
-    hintEl.textContent = cnt > 1
-      ? `Выбрано · ×${cnt} · тап по слоту или тяните вверх`
-      : "Выбрана · нажмите на слот, чтобы поставить или заменить карту";
-  } else {
-    hintEl.textContent = cnt > 1
-      ? (touch ? `×${cnt} · тап — выбрать · вверх — в слот` : `×${cnt} · клик — выбрать, тянуть — в слот`)
-      : (touch ? "Тап без движения — выбрать · вверх — в слот" : "Клик без движения — выбрать · тянуть вверх — в слот");
-  }
+  nameEl.textContent = `Карта ${template.rank} ${template.symbol}`;
 }
 
 function getFanBaseWidth() {
@@ -4988,6 +5022,7 @@ function lastFilledSlotIndex() {
 // Association show mode: Enter/Space/→ reveal and advance.
 // Association input mode: Enter submits from fields; → submits when focus is outside a field.
 document.addEventListener("keydown", function(e) {
+  if (document.getElementById("sideMenu").open) return;
   const target = e.target;
   const tag = (target && target.tagName) ? target.tagName.toLowerCase() : "";
   const typing = tag === "input" || tag === "textarea" || tag === "select" || (target && target.isContentEditable);
