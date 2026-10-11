@@ -953,7 +953,7 @@
 
   #poolGrid {
     max-width: none;
-    height: 132px;
+    height: 172px;
     overflow-x: auto;
     overflow-y: hidden;
     touch-action: pan-x;
@@ -961,7 +961,15 @@
     scrollbar-color: #666 #202020;
   }
   #poolGrid .pool-item, #poolGrid .fan-card { touch-action: pan-x; }
-  #poolSuitMarkers { display: none; }
+  #poolSuitMarkers {
+    display: block;
+    max-width: none;
+    height: 24px;
+    overflow: hidden;
+  }
+  #poolSuitMarkers .pool-suit-marker { font-size: 18px; color: #ccc; }
+  #poolSuitMarkers .pool-suit-marker.red { color: var(--red); }
+  #poolGrid .fan-rank { top: 14px; }
 
   /* Suit markers under the fan for faster scanning */
   .pool-suit-markers {
@@ -3976,7 +3984,6 @@ function renderPool() {
     html += `<div class="pool-item ${c.color} ${selected} ${showCount}" data-key="${k}" data-idx="${visibleIdx}" data-suit="${c.suit}">
       <div class="fan-card" data-key="${k}" data-idx="${visibleIdx}">
         <span class="fan-rank">${c.rank}</span>
-        <span class="fan-suit">${c.symbol}</span>
         ${badge}
       </div>
     </div>`;
@@ -4024,7 +4031,7 @@ function renderSuitMarkers(visibleCards) {
   });
   el.innerHTML = groups.map(g => {
     const mid = (g.start + g.end) / 2;
-    const x = L.startX + mid * L.step + L.cardW / 2;
+    const x = L.startX + mid * L.step + L.cardW / 2 - L.grid.scrollLeft;
     return `<span class="pool-suit-marker ${g.color}" style="left:${x}px">${g.symbol}</span>`;
   }).join("");
 }
@@ -4143,9 +4150,9 @@ function getFanLayout() {
 
   // Equal, non-overlapping cards. On narrow screens the deck scrolls horizontally.
   const gap = 4;
-  const minWidth = window.innerWidth < 720 ? 32 : 24;
+  const minWidth = window.innerWidth < 720 ? 44 : 48;
   const cardW = Math.min(84, Math.max(minWidth, (fanW - gap * (n - 1)) / n));
-  const cardH = Math.min(120, Math.max(64, Math.round(cardW / CARD_ASPECT)));
+  const cardH = Math.min(148, Math.max(112, Math.round(cardW / CARD_ASPECT)));
   const step = cardW + gap;
   const startX = Math.max(0, (fanW - (n * cardW + gap * (n - 1))) / 2);
   const exposed = cardW;
@@ -4291,6 +4298,10 @@ function applyFanFocus(previewImmediate = false) {
 }
 
 function bindFanPointerEvents(grid) {
+  grid.onscroll = () => {
+    const visible = Array.from(grid.children).map(el => prac.poolCardMap.get(el.dataset.key)).filter(Boolean);
+    renderSuitMarkers(visible);
+  };
   // Hover and press resolve the same visible DOM card; focus never changes overlap.
   grid.onmousemove = (e) => {
     if (dragState) return;
