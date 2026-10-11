@@ -2579,6 +2579,17 @@
     #poolSuitMarkers { height: 20px; }
   }
 
+
+  #revealArea .pair-answer { width: 100%; gap: 16px; }
+  #revealArea .pair-answer .card-sm {
+    width: calc((100% - 16px) / 2); max-width: 150px;
+    height: auto; aspect-ratio: 72 / 104; flex: 0 1 150px;
+    padding: 10px; border-radius: 12px;
+  }
+  #revealArea .pair-answer .rank { font-size: 1.4rem; }
+  #revealArea .pair-answer .suit-small { font-size: 1.05rem; }
+  #revealArea .pair-answer .suit-center { font-size: 3rem; }
+
 </style>
 </head>
 <body>
@@ -3247,7 +3258,7 @@ function showCurrent() {
 function answerHtml(it) {
   const [c1, c2] = it.cards;
   if (it.dir === "toCard") {
-    return `<div class="res-cards">${it.cards.map(c => renderCard(c, "sm")).join("")}</div>`;
+    return `<div class="res-cards${it.cards.length === 2 ? " pair-answer" : ""}">${it.cards.map(c => renderCard(c, "sm")).join("")}</div>`;
   }
   if (it.cards.length === 1) {
     const [v, t] = actionOf(c1);
