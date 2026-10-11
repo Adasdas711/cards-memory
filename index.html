@@ -2542,6 +2542,33 @@
     #tab-practice.recall-wide { max-width: 100%; }
   }
 
+
+  #menuCollapse {
+    position: absolute; top: 12px; right: 12px; min-height: 36px;
+    padding: 4px 10px; border: 0; border-radius: 8px; background: #2c2c2c;
+    color: #aaa; font-size: 1rem; cursor: pointer;
+  }
+  #menuCollapse:hover { color: #fff; background: #383838; }
+  @media (min-width: 980px) {
+    body.menu-collapsed { padding-left: 16px; }
+    body.menu-collapsed .sidebar { display: none; }
+    body.menu-collapsed #poolDock { left: 0; }
+    body.menu-collapsed #menuToggle {
+      display: flex; align-items: center; gap: 12px; position: fixed;
+      top: 12px; left: 16px; z-index: 9500; width: auto; min-height: 44px;
+      padding: 10px 14px; border: 1px solid #444; border-radius: 10px;
+      color: #eee; background: #292929; cursor: pointer;
+    }
+    body.menu-collapsed .burger, body.menu-collapsed .burger::before, body.menu-collapsed .burger::after {
+      display: block; width: 18px; height: 2px; background: #ddd;
+    }
+    body.menu-collapsed .burger { position: relative; }
+    body.menu-collapsed .burger::before, body.menu-collapsed .burger::after { content: ""; position: absolute; left: 0; }
+    body.menu-collapsed .burger::before { top: -6px; }
+    body.menu-collapsed .burger::after { top: 6px; }
+  }
+  @media (max-width: 979px) { #menuCollapse { display: none; } }
+
 </style>
 </head>
 <body>
@@ -2550,6 +2577,7 @@
 
 <div class="menu-backdrop" id="menuBackdrop" onclick="closeSideMenu()"></div>
 <aside class="sidebar" id="sidebar" aria-label="Разделы">
+  <button id="menuCollapse" type="button" aria-label="Свернуть меню" onclick="toggleDesktopMenu()">‹ <span>Свернуть</span></button>
   <nav class="side-nav">
     <button class="nav-item tab-btn" data-tab="catalog" onclick="switchTab('catalog')"><span class="nav-name">Теория</span></button>
     <div class="nav-group">Обучение</div>
@@ -2558,7 +2586,7 @@
     <button class="nav-item tab-btn sub" data-tab="practice" onclick="switchTab('practice')"><span class="nav-name">Практика</span><span class="nav-hint">запоминание колоды</span></button>
   </nav>
 </aside>
-<button class="menu-toggle" id="menuToggle" aria-label="Открыть меню" aria-controls="sidebar" aria-expanded="false" onclick="document.body.classList.contains('menu-open') ? closeSideMenu() : openSideMenu()"><span class="burger" aria-hidden="true"></span><span id="menuTitle">Ассоциации</span></button>
+<button class="menu-toggle" id="menuToggle" aria-label="Открыть меню" aria-controls="sidebar" aria-expanded="false" onclick="toggleSideMenu()"><span class="burger" aria-hidden="true"></span><span id="menuTitle">Ассоциации</span></button>
 
 <!-- TAB: ASSOCIATIONS (old training) -->
 <div id="tab-assoc" class="tab-content active">
@@ -2974,10 +3002,23 @@ function shuffle(arr) {
 }
 
 const mobileMenu = window.matchMedia("(max-width: 979px)");
+try { document.body.classList.toggle("menu-collapsed", localStorage.getItem("cards-menu-collapsed") === "true"); } catch (_) {}
+function toggleDesktopMenu() {
+  const collapsed = document.body.classList.toggle("menu-collapsed");
+  try { localStorage.setItem("cards-menu-collapsed", String(collapsed)); } catch (_) {}
+  syncSideMenu();
+  document.getElementById(collapsed ? "menuToggle" : "menuCollapse").focus();
+  window.dispatchEvent(new Event("resize"));
+}
+function toggleSideMenu() {
+  if (!mobileMenu.matches) { toggleDesktopMenu(); return; }
+  document.body.classList.contains("menu-open") ? closeSideMenu() : openSideMenu();
+}
 function syncSideMenu() {
   const open = mobileMenu.matches && document.body.classList.contains("menu-open");
-  document.getElementById("sidebar").inert = mobileMenu.matches && !open;
-  document.getElementById("menuToggle").setAttribute("aria-expanded", String(open));
+  const expanded = mobileMenu.matches ? open : !document.body.classList.contains("menu-collapsed");
+  document.getElementById("sidebar").inert = !expanded;
+  document.getElementById("menuToggle").setAttribute("aria-expanded", String(expanded));
   document.querySelectorAll(".tab-content").forEach(el => { el.inert = open; });
 }
 function openSideMenu() {
