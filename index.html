@@ -2488,6 +2488,25 @@
   #poolPreviewCard.empty { display: none !important; }
   #poolSuitMarkers { height: 22px; }
 
+
+  /* Responsive preview with a readable rank and one separate suit symbol. */
+  #poolPreviewWrap { min-height: 116px !important; }
+  #poolPreviewCard {
+    width: clamp(64px, 5vw, 76px);
+    height: clamp(92px, 7.2vw, 110px);
+    flex-basis: clamp(64px, 5vw, 76px);
+  }
+  #poolPreviewCard .pool-preview-live-card { padding: 10px 6px; }
+  #poolPreviewCard .rank { font-size: 22px; line-height: 1; }
+  #poolPreviewCard .suit-small { display: none; }
+  #poolPreviewCard .suit-center { top: 64%; font-size: 36px; line-height: 1; }
+  @media (max-width: 719px) {
+    #poolPreviewWrap { min-height: 100px !important; }
+    #poolPreviewCard { width: 60px; height: 86px; flex-basis: 60px; }
+    #poolPreviewCard .rank { font-size: 20px; }
+    #poolPreviewCard .suit-center { font-size: 32px; }
+  }
+
 </style>
 </head>
 <body>
