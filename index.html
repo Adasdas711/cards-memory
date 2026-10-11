@@ -5163,7 +5163,7 @@ document.addEventListener("keydown", function(e) {
   if (document.body.classList.contains("menu-open")) {
     if (e.key === "Escape") { e.preventDefault(); closeSideMenu(); }
     if (e.key === "Tab") {
-      const items = [...document.querySelectorAll("#sidebar button")];
+      const items = [...document.querySelectorAll("#sidebar button")].filter(el => el.offsetParent !== null);
       const first = items[0], last = items[items.length - 1];
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
