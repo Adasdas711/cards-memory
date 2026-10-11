@@ -2653,6 +2653,10 @@
           <div class="pool-preview-hint" id="poolPreviewHint">Наведите или коснитесь карты в веере</div>
         </div>
       </div>
+      <div style="display:flex;gap:8px;padding:4px 12px 8px;">
+        <button class="action primary" id="placeSelectedBtn" onclick="placeSelectedInNextSlot()" disabled>В следующий слот</button>
+        <button class="action" id="clearSelectedBtn" onclick="clearPoolSelection()" disabled>Отменить выбор</button>
+      </div>
       <div class="pool-suit-markers" id="poolSuitMarkers"></div>
       <div class="pool-fan" id="poolGrid"></div>
     </div>
@@ -3563,8 +3567,9 @@ function onCustomMemoTime() {
 
 function formatTimer(sec) {
   if (sec < 0) sec = 0;
+  sec = Math.ceil(sec);
   const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
+  const s = sec % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
@@ -3609,6 +3614,7 @@ function startPractice() {
   // Reset timers
   prac.memoElapsed = 0;
   prac.memoPaused = false;
+  document.getElementById("memoPauseBtn").textContent = "Пауза";
   prac.recallElapsed = 0;
   prac.recallPaused = false;
   if (prac.memoTimerId) clearInterval(prac.memoTimerId);
@@ -3667,8 +3673,24 @@ function toggleProgress() {
   document.getElementById("memoProgressWrap").style.display = show ? "block" : "none";
 }
 
+// Use a monotonic clock: changing the system time must not affect a session.
+function practiceElapsed(phase) {
+  const started = prac[`${phase}StartTs`];
+  const running = started !== null && !prac[`${phase}Paused`];
+  return prac[`${phase}Elapsed`] + (running ? Math.max(0, performance.now() - started) / 1000 : 0);
+}
+
+function stopPracticeTimer(phase) {
+  const limit = prac[`${phase}LimitSec`];
+  const elapsed = practiceElapsed(phase);
+  prac[`${phase}Elapsed`] = limit > 0 ? Math.min(elapsed, limit) : elapsed;
+  prac[`${phase}StartTs`] = null;
+  clearInterval(prac[`${phase}TimerId`]);
+  prac[`${phase}TimerId`] = null;
+}
+
 function startMemoTimer() {
-  prac.memoStartTs = Date.now();
+  prac.memoStartTs = performance.now();
   updateMemoTimerDisplay();
 
   if (prac.memoLimitSec === 0) {
@@ -3678,8 +3700,8 @@ function startMemoTimer() {
   }
 
   prac.memoTimerId = setInterval(() => {
-    if (prac.memoPaused || dragState) return;
-    const elapsed = prac.memoElapsed + (Date.now() - prac.memoStartTs) / 1000;
+    if (prac.memoPaused) return;
+    const elapsed = practiceElapsed("memo");
     const left = prac.memoLimitSec - elapsed;
     updateMemoTimerDisplay(left);
     if (left <= 0) {
@@ -3698,7 +3720,7 @@ function updateMemoTimerDisplay(left) {
     return;
   }
   if (left === undefined) {
-    const elapsed = prac.memoElapsed + (prac.memoPaused ? 0 : (Date.now() - prac.memoStartTs) / 1000);
+    const elapsed = practiceElapsed("memo");
     left = prac.memoLimitSec - elapsed;
   }
   el.textContent = formatTimer(left);
@@ -3708,35 +3730,32 @@ function updateMemoTimerDisplay(left) {
 }
 
 function toggleMemoPause() {
+  if (prac.memoStartTs === null) return;
   const btn = document.getElementById("memoPauseBtn");
   if (prac.memoPaused) {
     // resume
     prac.memoPaused = false;
-    prac.memoStartTs = Date.now();
+    prac.memoStartTs = performance.now();
     btn.textContent = "Пауза";
     if (prac.memoLimitSec > 0 && !prac.memoTimerId) {
       startMemoTimer();
     }
   } else {
     // pause
+    prac.memoElapsed = practiceElapsed("memo");
     prac.memoPaused = true;
-    prac.memoElapsed += (Date.now() - prac.memoStartTs) / 1000;
     btn.textContent = "Продолжить";
   }
+  updateMemoTimerDisplay();
 }
 
 function skipToRecall() {
-  if (prac.memoTimerId) {
-    clearInterval(prac.memoTimerId);
-    prac.memoTimerId = null;
-  }
-  if (!prac.memoPaused) {
-    prac.memoElapsed += (Date.now() - prac.memoStartTs) / 1000;
-  }
   goToRecall();
 }
 
 function goToRecall() {
+  if (prac.memoStartTs === null) return;
+  stopPracticeTimer("memo");
   document.getElementById("pracMemo").classList.add("hidden");
   document.getElementById("pracRecall").classList.remove("hidden");
 
@@ -4037,6 +4056,8 @@ function updatePoolPreview() {
   if (!dom) return;
   const { cardEl, nameEl, hintEl, live, rankEl, smallSuitEl, centerSuitEl } = dom;
   const touch = isTouchUI();
+  document.getElementById("placeSelectedBtn").disabled = !selectedKey || nextEmptySlotIndex() < 0;
+  document.getElementById("clearSelectedBtn").disabled = !selectedKey;
 
   let key = null;
   if (selectedKey) key = selectedKey;
@@ -4052,10 +4073,10 @@ function updatePoolPreview() {
     smallSuitEl.textContent = "";
     centerSuitEl.textContent = "";
     nameEl.className = "pool-preview-name";
-    nameEl.textContent = "—";
+    nameEl.textContent = "Карта не выбрана";
     hintEl.textContent = touch
-      ? "Тап без движения — выбрать · тянуть вверх — в слот"
-      : "Наведите для просмотра · клик без движения — выбрать";
+      ? "Коснитесь карты, затем нужного слота. Заполненный слот без выбора — убрать карту."
+      : "Нажмите на карту, затем на нужный слот. Заполненный слот без выбора — убрать карту.";
     return;
   }
 
@@ -4075,7 +4096,7 @@ function updatePoolPreview() {
   if (selectedKey === key) {
     hintEl.textContent = cnt > 1
       ? `Выбрано · ×${cnt} · тап по слоту или тяните вверх`
-      : (touch ? "Выбрано · тап по слоту или тяните вверх" : "Выбрано · клик по слоту или перетащите");
+      : "Выбрана · нажмите на слот, чтобы поставить или заменить карту";
   } else {
     hintEl.textContent = cnt > 1
       ? (touch ? `×${cnt} · тап — выбрать · вверх — в слот` : `×${cnt} · клик — выбрать, тянуть — в слот`)
@@ -4289,7 +4310,8 @@ function bindFanPointerEvents(grid) {
   const handler = (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     if (dragState) return;
-    const idx = indexFromFanX(e.clientX);
+    const clicked = e.target.closest(".pool-item");
+    const idx = clicked ? Number(clicked.dataset.idx) : indexFromFanX(e.clientX);
     if (idx < 0) return;
     const target = getPoolItemByFocusIndex(idx);
     if (!target) return;
@@ -4433,6 +4455,18 @@ function setSelectedPoolVisual(nextKey) {
   }
 }
 
+function clearPoolSelection() {
+  setSelectedPoolVisual(null);
+  fanFocusIndex = -1;
+  updatePoolSelectionUI();
+  requestFanFocus(-1, true);
+}
+
+function placeSelectedInNextSlot() {
+  const slotIdx = nextEmptySlotIndex();
+  if (selectedKey && slotIdx >= 0) placeCardInSlot(selectedKey, slotIdx);
+}
+
 function onSlotInteract(slotIdx) {
   if (selectedKey) {
     placeCardInSlot(selectedKey, slotIdx);
@@ -4494,6 +4528,7 @@ function updateOneSlotDom(slotIdx, card) {
 }
 
 function placeCardInSlot(key, slotIdx) {
+  if (!Number.isInteger(slotIdx) || slotIdx < 0 || slotIdx >= prac.slots.length) return;
   if ((prac.poolCounts[key] || 0) <= 0) return;
 
   const template = (prac.poolCardMap && prac.poolCardMap.get(key))
@@ -4524,6 +4559,7 @@ function placeCardInSlot(key, slotIdx) {
     // Normal drag target: remove only one DOM node from the pool. This avoids
     // rebuilding 51 cards + 52 slots after every successful drop.
     refreshFanAfterPoolRemoval(key);
+    updatePoolSelectionUI();
   } else {
     // Replacing a filled slot returns the old card to the pool; rare path can
     // safely use the full pool renderer to preserve correct sorted order.
@@ -4640,7 +4676,7 @@ function onPoolPointerDown(e, key, itemEl) {
     const dist2 = dx * dx + dy * dy;
 
     // Horizontal gesture = scrub the fan, not drag.
-    if (!st.axis || st.axis === "h") {
+    if (absX > TAP_SLOP && (!st.axis || st.axis === "h")) {
       const newIdx = indexFromFanX(ev.clientX);
       if (newIdx >= 0 && newIdx !== fanFocusIndex) {
         const target = getPoolItemByFocusIndex(newIdx);
@@ -4706,7 +4742,7 @@ function onPoolPointerDown(e, key, itemEl) {
     }
 
     // Original selection behavior: tap OR horizontal scrub selects final card.
-    const finalIdx = fanFocusIndex >= 0 ? fanFocusIndex : idx;
+    const finalIdx = fanIndexByKey.has(st.key) ? fanIndexByKey.get(st.key) : idx;
     const finalItem = getPoolItemByFocusIndex(finalIdx);
     const finalKey = (finalItem && finalItem.dataset.key) || st.key;
 
@@ -4739,7 +4775,7 @@ function onPoolPointerDown(e, key, itemEl) {
 }
 
 function startRecallTimer() {
-  prac.recallStartTs = Date.now();
+  prac.recallStartTs = performance.now();
   prac.recallElapsed = 0;
   prac.recallPaused = false;
   document.getElementById("recallPauseBtn").textContent = "Пауза";
@@ -4747,8 +4783,8 @@ function startRecallTimer() {
   updateRecallTimerDisplay();
 
   prac.recallTimerId = setInterval(() => {
-    if (prac.recallPaused || dragState) return;
-    const elapsed = prac.recallElapsed + (Date.now() - prac.recallStartTs) / 1000;
+    if (prac.recallPaused) return;
+    const elapsed = practiceElapsed("recall");
     const left = prac.recallLimitSec - elapsed;
     updateRecallTimerDisplay(left);
     if (left <= 0) {
@@ -4762,7 +4798,7 @@ function startRecallTimer() {
 function updateRecallTimerDisplay(left) {
   const el = document.getElementById("recallTimer");
   if (left === undefined) {
-    const elapsed = prac.recallElapsed + (prac.recallPaused ? 0 : (Date.now() - prac.recallStartTs) / 1000);
+    const elapsed = practiceElapsed("recall");
     left = prac.recallLimitSec - elapsed;
   }
   el.textContent = formatTimer(left);
@@ -4772,26 +4808,23 @@ function updateRecallTimerDisplay(left) {
 }
 
 function toggleRecallPause() {
+  if (prac.recallStartTs === null) return;
   const btn = document.getElementById("recallPauseBtn");
   if (prac.recallPaused) {
     prac.recallPaused = false;
-    prac.recallStartTs = Date.now();
+    prac.recallStartTs = performance.now();
     btn.textContent = "Пауза";
   } else {
+    prac.recallElapsed = practiceElapsed("recall");
     prac.recallPaused = true;
-    prac.recallElapsed += (Date.now() - prac.recallStartTs) / 1000;
     btn.textContent = "Продолжить";
   }
+  updateRecallTimerDisplay();
 }
 
 function finishRecall() {
-  if (prac.recallTimerId) {
-    clearInterval(prac.recallTimerId);
-    prac.recallTimerId = null;
-  }
-  if (!prac.recallPaused) {
-    prac.recallElapsed += (Date.now() - prac.recallStartTs) / 1000;
-  }
+  if (prac.recallStartTs === null) return;
+  stopPracticeTimer("recall");
 
   // Cleanup touch/drag state
   endDragCleanup();
@@ -4867,6 +4900,8 @@ function resetPractice() {
   if (prac.recallTimerId) clearInterval(prac.recallTimerId);
   prac.memoTimerId = null;
   prac.recallTimerId = null;
+  prac.memoStartTs = null;
+  prac.recallStartTs = null;
 
   // Cleanup touch/drag state
   endDragCleanup();
@@ -4959,7 +4994,9 @@ document.addEventListener("keydown", function(e) {
   }
 
   // Don't steal ordinary characters/arrows while the user edits a field or select.
-  if (typing) return;
+  if (typing || e.defaultPrevented) return;
+  // Let focused buttons handle Enter/Space once through their native click.
+  if (tag === "button" && (e.key === "Enter" || e.key === " ")) return;
 
   const pracSetupVisible = document.getElementById("tab-practice").classList.contains("active") &&
     !document.getElementById("pracSetup").classList.contains("hidden");
