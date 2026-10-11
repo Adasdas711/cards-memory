@@ -2569,6 +2569,16 @@
   }
   @media (max-width: 979px) { #menuCollapse { display: none; } }
 
+
+  @media (max-height: 500px) {
+    #poolPreviewWrap { min-height: 72px !important; }
+    #poolPreviewCard { width: 42px; height: 60px; flex-basis: 42px; }
+    #poolPreviewCard .pool-preview-live-card { padding-top: 6px; }
+    #poolPreviewCard .rank { font-size: 16px; }
+    #poolPreviewCard .suit-center { font-size: 24px; }
+    #poolSuitMarkers { height: 20px; }
+  }
+
 </style>
 </head>
 <body>
@@ -2977,7 +2987,8 @@ const ASSOC_PREFS_KEY = "assocPrefs.v1";
 const assoc = { fmt: "input", unit: "one", dir: "toAssoc" };
 try {
   const saved = JSON.parse(localStorage.getItem(ASSOC_PREFS_KEY) || "{}");
-  ["fmt", "unit", "dir"].forEach(k => { if (typeof saved[k] === "string") assoc[k] = saved[k]; });
+  const options = {fmt: ["input", "show"], unit: ["one", "two", "mix"], dir: ["toAssoc", "toCard", "mix"]};
+  Object.keys(options).forEach(k => { if (options[k].includes(saved[k])) assoc[k] = saved[k]; });
 } catch (e) {}
 
 let aItems = [];   // [{ cards: [card] | [card1, card2], dir: "toAssoc" | "toCard" }]
@@ -3326,6 +3337,7 @@ function fuzzyMatch(user, key) {
 // ---- answer checking ----
 function matchImage(card, input) {
   const n = normalize(input);
+  if (n.length < 3) return card.keys.some(k => normalize(k) === n && n.length > 0);
   return !!n && card.keys.some(k => fuzzyMatch(n, k));
 }
 
@@ -3418,17 +3430,17 @@ const ACTION_KEYS = {
 // Every action word (manual keys + verb + trace) → card. A word belongs to the card whose key
 // matches it most specifically, so near-twins (надувает/надевает, полосатый/волосатый) never cross over.
 let ACTION_INDEX = null;
+const ACTION_STOP_WORDS = new Set(["делает", "ставит", "бьет", "здесь"]);
 function getActionIndex() {
   if (ACTION_INDEX) return ACTION_INDEX;
-  const STOP = new Set(["делает", "ставит", "бьет", "здесь"]);
   ACTION_INDEX = [];
   DATA.forEach(c => {
     const code = cardCode(c);
     const [v, t] = actionOf(c);
     const words = new Set((ACTION_KEYS[code] || []).map(normalize));
     const verb = normalize(v).split(" ")[0];
-    if (verb && verb.length >= 4 && !STOP.has(verb)) words.add(verb);
-    normalize(t).split(" ").forEach(w => { if (w.length >= 4 && !STOP.has(w)) words.add(w); });
+    if (verb && verb.length >= 4 && !ACTION_STOP_WORDS.has(verb)) words.add(verb);
+    normalize(t).split(" ").forEach(w => { if (w.length >= 4 && !ACTION_STOP_WORDS.has(w)) words.add(w); });
     words.forEach(k => ACTION_INDEX.push({ code, key: k, stem: k.length <= 4 ? k : k.slice(0, Math.max(5, k.length - 2)) }));
   });
   return ACTION_INDEX;
@@ -3461,11 +3473,14 @@ function classifyActionWord(w) {
   VERB_PREFIXES.forEach(p => { if (w.startsWith(p) && w.length - p.length >= 4) variants.push(w.slice(p.length)); });
   // 1) the word itself, then the word without a verb prefix; the most specific key wins
   for (const v of variants) {
-    let best = null;
+    let bestLength = -1;
+    const codes = new Set();
     for (const e of getActionIndex()) {
-      if (keyMatches(v, e) && (!best || e.stem.length > best.stem.length)) best = e;
+      if (!keyMatches(v, e)) continue;
+      if (e.stem.length > bestLength) { bestLength = e.stem.length; codes.clear(); }
+      if (e.stem.length === bestLength) codes.add(e.code);
     }
-    if (best) return best.code;
+    if (codes.size) return codes.size === 1 ? [...codes][0] : null;
   }
   if (w.length < 5) return null;
   // 2) one typo or one swapped pair of letters inside the root, only if it points to a single card
@@ -3494,7 +3509,7 @@ function matchAction(card, input) {
   const n = normalize(input);
   if (!n) return false;
   const code = cardCode(card);
-  return n.split(" ").filter(w => w.length >= 3).some(w => classifyActionWord(w) === code);
+  return n.split(" ").filter(w => w.length >= 3 && !ACTION_STOP_WORDS.has(w)).some(w => classifyActionWord(w) === code);
 }
 
 // One boolean per part: [card] or [who/1st card, action/2nd card]
@@ -3751,8 +3766,12 @@ function setMemoPreset(sec) {
 }
 
 function onCustomMemoTime() {
-  const min = parseInt(document.getElementById("pracMemoMin").value, 10) || 0;
-  const sec = parseInt(document.getElementById("pracMemoSec").value, 10) || 0;
+  const minInput = document.getElementById("pracMemoMin");
+  const secInput = document.getElementById("pracMemoSec");
+  const min = Math.max(0, Math.min(60, parseInt(minInput.value, 10) || 0));
+  const sec = Math.max(0, Math.min(59, parseInt(secInput.value, 10) || 0));
+  minInput.value = String(min);
+  secInput.value = String(sec);
   const total = min * 60 + sec;
   prac.memoLimitSec = total;
   document.querySelectorAll(".preset-btn").forEach(b => {
@@ -4306,7 +4325,7 @@ function getFanLayout() {
   const fanH = grid.clientHeight || grid.offsetHeight || 148;
 
   // Full-size cards overlap; labels stay within their exposed left edge.
-  const cardW = window.innerWidth < 720 ? 96 : 112;
+  const cardW = window.innerHeight <= 500 ? 78 : (window.innerWidth < 720 ? 96 : 112);
   const cardH = Math.round(cardW / CARD_ASPECT);
   const step = n > 1 ? Math.min(cardW * 0.65, Math.max(28, (fanW - cardW) / (n - 1))) : 0;
   const startX = Math.max(0, (fanW - (cardW + (n - 1) * step)) / 2);
@@ -4565,6 +4584,7 @@ function suspendFanUiForDrag() {
 }
 
 function endDragCleanup() {
+  if (dragState && dragState.removeGestureListeners) dragState.removeGestureListeners();
   cancelPendingDragFrame();
   clearAllGhosts();
   dragState = null;
@@ -4709,6 +4729,7 @@ function refreshFanAfterPoolRemoval(removedKey) {
 function updateOneSlotDom(slotIdx, card) {
   const slotEl = document.querySelector(`#slotsGrid .slot[data-slot="${slotIdx}"]`);
   if (!slotEl) return false;
+  slotEl.setAttribute("aria-label", `Слот ${slotIdx + 1}${card ? ", " + card.symbol + card.rank : ", пустой"}`);
   slotEl.classList.toggle("filled", !!card);
   slotEl.classList.remove("drag-over", "tap-target");
   slotEl.innerHTML = `<span class="slot-num">${slotIdx + 1}</span>${card ? renderCard(card, "xs") : ""}`;
@@ -4948,6 +4969,7 @@ function onPoolPointerDown(e, key, itemEl) {
   const onWindowBlur = () => { if (dragState) finishCancelledGesture(); };
   const onVisibilityChange = () => { if (document.hidden && dragState) finishCancelledGesture(); };
 
+  dragState.removeGestureListeners = removeGestureListeners;
   document.addEventListener("pointermove", onPointerMove, { passive: true });
   document.addEventListener("pointerup", onPointerUp, { passive: true });
   document.addEventListener("pointercancel", onPointerCancel, { passive: true });
@@ -5072,6 +5094,7 @@ function finishRecall() {
     }
     grid.outerHTML = `<div id="pracResultGrid">${html}</div>`;
   } else {
+    grid.className = "prac-result-grid";
     grid.innerHTML = details.map(renderItem).join("");
   }
 }
@@ -5143,6 +5166,16 @@ bindArrowGroup(".memo-controls", "button", false);
 bindArrowGroup(".recall-controls", "button", false);
 bindArrowGroup(".deck-tabs", ".deck-tab-btn", true);
 
+function scrollKeyboardCardIntoView() {
+  const item = getPoolItemByFocusIndex(fanFocusIndex);
+  if (!item) return;
+  const grid = document.getElementById("poolGrid");
+  const left = item.offsetLeft;
+  const width = Math.min(item.offsetWidth, getFanLayout().exposed);
+  if (left < grid.scrollLeft) grid.scrollLeft = left;
+  else if (left + width > grid.scrollLeft + grid.clientWidth) grid.scrollLeft = left + width - grid.clientWidth;
+}
+
 function nextEmptySlotIndex() {
   return prac.slots.findIndex(v => !v);
 }
@@ -5191,9 +5224,10 @@ document.addEventListener("keydown", function(e) {
 
   const pracSetupVisible = document.getElementById("tab-practice").classList.contains("active") &&
     !document.getElementById("pracSetup").classList.contains("hidden");
-  const pracMemoVisible = !document.getElementById("pracMemo").classList.contains("hidden");
-  const pracRecallVisible = !document.getElementById("pracRecall").classList.contains("hidden");
-  const pracResultsVisible = document.getElementById("pracResults").classList.contains("active");
+  const practiceActive = document.getElementById("tab-practice").classList.contains("active");
+  const pracMemoVisible = practiceActive && !document.getElementById("pracMemo").classList.contains("hidden");
+  const pracRecallVisible = practiceActive && !document.getElementById("pracRecall").classList.contains("hidden");
+  const pracResultsVisible = practiceActive && document.getElementById("pracResults").classList.contains("active");
   const assocActive = document.getElementById("tab-assoc").classList.contains("active");
   const trainingVisible = !document.getElementById("trainingArea").classList.contains("hidden");
   const assocResultsVisible = document.getElementById("resultsArea").classList.contains("active");
@@ -5250,6 +5284,7 @@ document.addEventListener("keydown", function(e) {
       else idx = (idx + 1) % items.length;
       fanFocusIndex = idx;
       selectedKey = items[idx].dataset.key;
+      scrollKeyboardCardIntoView();
       updatePoolSelectionUI();
       applyFanFocus();
     } else if (e.key === "Enter") {
@@ -5259,6 +5294,7 @@ document.addEventListener("keydown", function(e) {
         if (items.length) {
           fanFocusIndex = fanFocusIndex >= 0 ? fanFocusIndex : 0;
           selectedKey = items[fanFocusIndex].dataset.key;
+          scrollKeyboardCardIntoView();
           updatePoolSelectionUI();
           applyFanFocus();
         }
@@ -5269,7 +5305,7 @@ document.addEventListener("keydown", function(e) {
     } else if (e.key === "Backspace" || e.key === "Delete") {
       e.preventDefault();
       const idx = lastFilledSlotIndex();
-      if (idx >= 0) onSlotInteract(idx);
+      if (idx >= 0) { clearPoolSelection(); onSlotInteract(idx); }
     } else if (e.key === "[" || e.key === "]") {
       if (prac.usePerDeck && prac.decks > 1) {
         e.preventDefault();
