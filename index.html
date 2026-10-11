@@ -1070,10 +1070,7 @@
     background: var(--blue);
   }
 
-  /* Focused: wider + clearer so the active card is unmistakable */
-  .pool-item.fan-focus {
-    z-index: 80 !important;
-  }
+  /* Focus changes color only: keep overlap order and label positions stable. */
   .pool-item.fan-focus .fan-card {
     box-shadow: none;
     border-color: #8a8a8a;
@@ -1081,7 +1078,7 @@
   }
   .pool-item.fan-focus .fan-rank,
   .pool-item.fan-focus .fan-suit {
-    left: 50% !important;
+    left: var(--fan-label-x, 50%) !important;
   }
   .pool-item.fan-focus .fan-rank { font-size: 1.35rem !important; }
   .pool-item.fan-focus .fan-suit { font-size: 1.6rem !important; }
@@ -2653,10 +2650,6 @@
           <div class="pool-preview-hint" id="poolPreviewHint">Наведите или коснитесь карты в веере</div>
         </div>
       </div>
-      <div style="display:flex;gap:8px;padding:4px 12px 8px;">
-        <button class="action primary" id="placeSelectedBtn" onclick="placeSelectedInNextSlot()" disabled>В следующий слот</button>
-        <button class="action" id="clearSelectedBtn" onclick="clearPoolSelection()" disabled>Отменить выбор</button>
-      </div>
       <div class="pool-suit-markers" id="poolSuitMarkers"></div>
       <div class="pool-fan" id="poolGrid"></div>
     </div>
@@ -4056,15 +4049,13 @@ function updatePoolPreview() {
   if (!dom) return;
   const { cardEl, nameEl, hintEl, live, rankEl, smallSuitEl, centerSuitEl } = dom;
   const touch = isTouchUI();
-  document.getElementById("placeSelectedBtn").disabled = !selectedKey || nextEmptySlotIndex() < 0;
-  document.getElementById("clearSelectedBtn").disabled = !selectedKey;
 
   let key = null;
-  if (selectedKey) key = selectedKey;
-  else if (fanFocusIndex >= 0) {
+  if (fanFocusIndex >= 0) {
     const item = getPoolItemByFocusIndex(fanFocusIndex);
     if (item) key = item.dataset.key;
   }
+  if (!key) key = selectedKey;
 
   if (!key) {
     cardEl.className = "pool-preview-card empty";
@@ -4158,15 +4149,17 @@ function getFanLayout() {
 }
 
 /**
- * Hit-test against the stable BASE geometry. O(1): no loop over all cards.
+ * Touch scrubbing uses the same exposed strips as the visible overlap. O(1).
  */
 function indexFromFanX(clientX) {
   const L = getFanLayout();
   if (!L) return -1;
+  const x = clientX - L.grid.getBoundingClientRect().left - L.startX;
+  if (x < 0 || x > (L.n - 1) * L.step + L.cardW) return -1;
   if (L.n === 1 || L.step <= 0) return 0;
-  const x = clientX - L.rectLeft;
-  const raw = Math.round((x - L.startX - L.cardW / 2) / L.step);
-  return Math.max(0, Math.min(L.n - 1, raw));
+  // Each label sits in the exposed LEFT strip, not at the full card's center.
+  const idx = Math.min(L.n - 1, Math.floor(x / L.step));
+  return x - idx * L.step <= L.cardW ? idx : -1;
 }
 
 function baseFanLabelMetrics(L) {
@@ -4279,7 +4272,7 @@ function applyFanFocus(previewImmediate = false) {
   if (focus >= 0 && L.items[focus]) {
     const item = L.items[focus];
     item.classList.add("fan-focus");
-    item.style.zIndex = "100";
+    item.style.zIndex = String(focus + 1);
   }
 
   appliedFanFocusIndex = focus;
@@ -4287,10 +4280,11 @@ function applyFanFocus(previewImmediate = false) {
 }
 
 function bindFanPointerEvents(grid) {
-  // Hit-testing by base X positions (stable, no jump under cursor)
+  // Hover and press resolve the same visible DOM card; focus never changes overlap.
   grid.onmousemove = (e) => {
     if (dragState) return;
-    const idx = indexFromFanX(e.clientX);
+    const item = e.target.closest(".pool-item");
+    const idx = item ? Number(item.dataset.idx) : -1;
     if (idx !== fanFocusIndex) requestFanFocus(idx, false);
   };
   grid.onmouseleave = () => {
@@ -4300,7 +4294,7 @@ function bindFanPointerEvents(grid) {
     requestFanFocus(found, false);
   };
 
-  // Single listener on the whole fan — resolves card by base X.
+  // Single listener on the whole fan resolves the card actually under the pointer.
   // Finger-scrub on touch: slide across the fan without precise taps.
   // Remove previous listener by cloning is not needed — we overwrite via property? No, addEventListener stacks.
   // Guard against double-binding after re-renders:
@@ -4462,11 +4456,6 @@ function clearPoolSelection() {
   requestFanFocus(-1, true);
 }
 
-function placeSelectedInNextSlot() {
-  const slotIdx = nextEmptySlotIndex();
-  if (selectedKey && slotIdx >= 0) placeCardInSlot(selectedKey, slotIdx);
-}
-
 function onSlotInteract(slotIdx) {
   if (selectedKey) {
     placeCardInSlot(selectedKey, slotIdx);
@@ -4598,12 +4587,6 @@ function getPoolItemByFocusIndex(idx) {
   return L && L.items ? (L.items[idx] || null) : null;
 }
 
-function resolveFocusKey() {
-  const focusItem = getPoolItemByFocusIndex(fanFocusIndex);
-  if (focusItem && focusItem.dataset.key) return { key: focusItem.dataset.key, item: focusItem };
-  return null;
-}
-
 function onPoolPointerDown(e, key, itemEl) {
   if (e.pointerType === "mouse" && e.button !== 0) return;
   if ((prac.poolCounts[key] || 0) <= 0) return;
@@ -4676,7 +4659,7 @@ function onPoolPointerDown(e, key, itemEl) {
     const dist2 = dx * dx + dy * dy;
 
     // Horizontal gesture = scrub the fan, not drag.
-    if (absX > TAP_SLOP && (!st.axis || st.axis === "h")) {
+    if (st.isTouch && absX > TAP_SLOP && absX > absY * SCRUB_AXIS_RATIO && (!st.axis || st.axis === "h")) {
       const newIdx = indexFromFanX(ev.clientX);
       if (newIdx >= 0 && newIdx !== fanFocusIndex) {
         const target = getPoolItemByFocusIndex(newIdx);
@@ -4697,7 +4680,7 @@ function onPoolPointerDown(e, key, itemEl) {
     const yNeed = st.isTouch ? DRAG_Y_TOUCH : DRAG_Y_MOUSE;
     const shouldStartDrag = (
       (st.axis === "v" && absY > yNeed) ||
-      (!st.isTouch && dist2 > DRAG_THRESHOLD * DRAG_THRESHOLD && absY >= absX * 0.6) ||
+      (!st.isTouch && dist2 > DRAG_THRESHOLD * DRAG_THRESHOLD) ||
       (st.isTouch && absY > yNeed && absY > absX * 0.7)
     );
     if (!shouldStartDrag) return;
@@ -4706,12 +4689,6 @@ function onPoolPointerDown(e, key, itemEl) {
     st.axis = "v";
     suppressClick = true;
     suspendFanUiForDrag();
-
-    const resolved = resolveFocusKey();
-    if (resolved) {
-      st.key = resolved.key;
-      st.itemEl = resolved.item;
-    }
 
     // No selection repaint, no slot scan and no geometry cache at drag start.
     st.ghost = createGhost(st.key, ev.clientX, ev.clientY);
