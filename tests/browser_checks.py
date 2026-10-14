@@ -153,17 +153,45 @@ class BrowserChecks(unittest.TestCase):
         self.practice();self.page.evaluate('skipToRecall();finishRecall()')
         self.assertTrue(self.page.locator('#pracResultGrid').evaluate("el=>el.classList.contains('prac-result-grid')"))
 
-    def test_timer_pause_expiry_and_reset(self):
-        self.page.evaluate('''window.testNow=10000;performance.now=()=>window.testNow;window.ticks=new Map();window.tickId=0;window.setInterval=fn=>{const id=++tickId;ticks.set(id,fn);return id};window.clearInterval=id=>ticks.delete(id)''')
-        self.practice();self.page.evaluate('testNow+=2000;toggleMemoPause();testNow+=30000;toggleMemoPause();testNow+=3000;skipToRecall()')
-        self.assertEqual(self.page.evaluate('prac.memoElapsed'),5)
-        self.page.evaluate('testNow+=4000;toggleRecallPause();testNow+=30000;finishRecall();finishRecall()')
-        self.assertEqual(self.page.evaluate('prac.recallElapsed'),4)
+    def test_timer_expiry_and_reset(self):
+        self.page.evaluate('''window.testNow=10000;performance.now=()=>window.testNow;Date.now=()=>window.testNow;window.ticks=new Map();window.tickId=0;window.setInterval=fn=>{const id=++tickId;ticks.set(id,fn);return id};window.clearInterval=id=>ticks.delete(id)''')
+        self.practice();self.page.evaluate('testNow+=35000;skipToRecall()')
+        self.assertEqual(self.page.evaluate('prac.memoElapsed'),35)
+        self.page.evaluate('testNow+=34000;finishRecall();finishRecall()')
+        self.assertEqual(self.page.evaluate('prac.recallElapsed'),34)
         self.practice();self.page.evaluate('prac.memoLimitSec=2;testNow+=2500;ticks.get(prac.memoTimerId)()')
         self.assertEqual(self.page.evaluate('prac.memoElapsed'),2)
         self.page.evaluate('prac.recallLimitSec=2;testNow+=2500;ticks.get(prac.recallTimerId)()')
         self.assertEqual(self.page.evaluate('prac.recallElapsed'),2)
         self.page.evaluate('resetPractice()');self.assertEqual(self.page.evaluate('ticks.size'),0)
+
+    def test_practice_space_does_not_stop_time(self):
+        self.page.evaluate('window.testNow=10000;Date.now=()=>testNow')
+        self.practice()
+        self.assertEqual(self.page.get_by_role('button',name='Пауза',exact=True).count(),0)
+        for phase in ['memo','recall']:
+            with self.subTest(phase=phase):
+                self.body_focus()
+                self.page.evaluate('testNow+=5000')
+                self.page.keyboard.down('Space')
+                self.page.keyboard.down('Space')
+                self.page.keyboard.up('Space')
+                self.page.evaluate('testNow+=30000')
+                self.page.evaluate('skipToRecall()' if phase=='memo' else 'finishRecall()')
+                self.assertEqual(self.page.evaluate(f'prac.{phase}Elapsed'),35)
+
+    def test_timers_include_background_time_without_callbacks(self):
+        self.page.evaluate('''window.wallNow=10000;window.activeNow=10000;
+            Date.now=()=>wallNow;performance.now=()=>activeNow;
+            window.setInterval=()=>1;window.clearInterval=()=>{};''')
+        self.page.evaluate("document.getElementById('pracMemoMin').value='0';document.getElementById('pracMemoSec').value='0'")
+        self.practice(1,52)
+        self.page.evaluate("switchTab('catalog');wallNow+=540000;activeNow+=5000;switchTab('practice');skipToRecall()")
+        self.assertEqual(self.page.evaluate('prac.memoElapsed'),540)
+        self.page.evaluate('wallNow+=495000;activeNow+=5000;finishRecall()')
+        stats=self.page.locator('#pracStatsBox').inner_text()
+        self.assertIn('Время запоминания: 9 мин 0 сек',stats)
+        self.assertIn('Время вспоминания: 8 мин 15 сек',stats)
 
     def test_invalid_time_is_clamped(self):
         for minutes,seconds,expected in [('-1','-30',0),('999','999',3659),('','',0)]:

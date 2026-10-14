@@ -2792,12 +2792,11 @@
     <div class="memo-controls">
       <button id="memoPrevBtn" onclick="memoPrevGroup()" disabled>← Назад</button>
       <button id="memoNextBtn" onclick="memoNextGroup()">Далее →</button>
-      <button id="memoPauseBtn" onclick="toggleMemoPause()">Пауза</button>
       <button id="memoSkipBtn" onclick="skipToRecall()">К вводу</button>
       <button class="danger" onclick="resetPractice()" title="Сбросить текущую попытку">Сброс</button>
     </div>
     <div style="text-align:center;font-size:0.75rem;color:var(--text-dim);margin-top:8px;">
-      ← → — группы · Пробел — пауза
+      ← → — группы
     </div>
   </div>
 
@@ -2815,12 +2814,8 @@
       </div>
 
       <div class="recall-controls">
-        <button id="recallPauseBtn" onclick="toggleRecallPause()">Пауза</button>
         <button class="success" onclick="finishRecall()">Готово</button>
         <button class="danger" onclick="resetPractice()" title="Сбросить текущую попытку">Сброс</button>
-      </div>
-      <div style="text-align:center;font-size:0.75rem;color:var(--text-dim);margin-top:8px;margin-bottom:8px;">
-        Пробел — пауза
       </div>
     </div>
 
@@ -3699,12 +3694,10 @@ let prac = {
   totalCards: 52,
   memoLimitSec: 300,     // 0 = unlimited
   memoElapsed: 0,
-  memoPaused: false,
   memoTimerId: null,
   memoStartTs: null,
   recallLimitSec: 15 * 60,
   recallElapsed: 0,
-  recallPaused: false,
   recallTimerId: null,
   recallStartTs: null,
   slots: [],             // array of card ids or null (ACTIVE deck's slots — alias into perDeck[activeDeck] when usePerDeck)
@@ -3838,10 +3831,7 @@ function startPractice() {
 
   // Reset timers
   prac.memoElapsed = 0;
-  prac.memoPaused = false;
-  document.getElementById("memoPauseBtn").textContent = "Пауза";
   prac.recallElapsed = 0;
-  prac.recallPaused = false;
   if (prac.memoTimerId) clearInterval(prac.memoTimerId);
   if (prac.recallTimerId) clearInterval(prac.recallTimerId);
 
@@ -3898,11 +3888,11 @@ function toggleProgress() {
   document.getElementById("memoProgressWrap").style.display = show ? "block" : "none";
 }
 
-// Use a monotonic clock: changing the system time must not affect a session.
+// Use wall-clock timestamps so background tabs and device suspension count too.
 function practiceElapsed(phase) {
   const started = prac[`${phase}StartTs`];
-  const running = started !== null && !prac[`${phase}Paused`];
-  return prac[`${phase}Elapsed`] + (running ? Math.max(0, performance.now() - started) / 1000 : 0);
+  const running = started !== null;
+  return prac[`${phase}Elapsed`] + (running ? Math.max(0, Date.now() - started) / 1000 : 0);
 }
 
 function stopPracticeTimer(phase) {
@@ -3915,7 +3905,7 @@ function stopPracticeTimer(phase) {
 }
 
 function startMemoTimer() {
-  prac.memoStartTs = performance.now();
+  prac.memoStartTs = Date.now();
   updateMemoTimerDisplay();
 
   if (prac.memoLimitSec === 0) {
@@ -3925,7 +3915,6 @@ function startMemoTimer() {
   }
 
   prac.memoTimerId = setInterval(() => {
-    if (prac.memoPaused) return;
     const elapsed = practiceElapsed("memo");
     const left = prac.memoLimitSec - elapsed;
     updateMemoTimerDisplay(left);
@@ -3952,26 +3941,6 @@ function updateMemoTimerDisplay(left) {
   el.className = "timer-display";
   if (left <= 30) el.classList.add("danger");
   else if (left <= 60) el.classList.add("warning");
-}
-
-function toggleMemoPause() {
-  if (prac.memoStartTs === null) return;
-  const btn = document.getElementById("memoPauseBtn");
-  if (prac.memoPaused) {
-    // resume
-    prac.memoPaused = false;
-    prac.memoStartTs = performance.now();
-    btn.textContent = "Пауза";
-    if (prac.memoLimitSec > 0 && !prac.memoTimerId) {
-      startMemoTimer();
-    }
-  } else {
-    // pause
-    prac.memoElapsed = practiceElapsed("memo");
-    prac.memoPaused = true;
-    btn.textContent = "Продолжить";
-  }
-  updateMemoTimerDisplay();
 }
 
 function skipToRecall() {
@@ -4989,15 +4958,12 @@ function onPoolPointerDown(e, key, itemEl) {
 }
 
 function startRecallTimer() {
-  prac.recallStartTs = performance.now();
+  prac.recallStartTs = Date.now();
   prac.recallElapsed = 0;
-  prac.recallPaused = false;
-  document.getElementById("recallPauseBtn").textContent = "Пауза";
 
   updateRecallTimerDisplay();
 
   prac.recallTimerId = setInterval(() => {
-    if (prac.recallPaused) return;
     const elapsed = practiceElapsed("recall");
     const left = prac.recallLimitSec - elapsed;
     updateRecallTimerDisplay(left);
@@ -5019,21 +4985,6 @@ function updateRecallTimerDisplay(left) {
   el.className = "timer-display";
   if (left <= 30) el.classList.add("danger");
   else if (left <= 60) el.classList.add("warning");
-}
-
-function toggleRecallPause() {
-  if (prac.recallStartTs === null) return;
-  const btn = document.getElementById("recallPauseBtn");
-  if (prac.recallPaused) {
-    prac.recallPaused = false;
-    prac.recallStartTs = performance.now();
-    btn.textContent = "Пауза";
-  } else {
-    prac.recallElapsed = practiceElapsed("recall");
-    prac.recallPaused = true;
-    btn.textContent = "Продолжить";
-  }
-  updateRecallTimerDisplay();
 }
 
 function finishRecall() {
@@ -5198,9 +5149,9 @@ function lastFilledSlotIndex() {
 
 // Keyboard navigation
 // Global: Alt+1 / Alt+2 / Alt+3 switches tabs from anywhere.
-// Practice memo: ←/→ groups, Space pause, Enter next (or recall at the end), R recall.
+// Practice memo: ←/→ groups, Enter next (or recall at the end), R recall.
 // Recall: ←/→ choose card, Enter puts it in next empty slot, Backspace removes last placed,
-// [ / ] changes deck, Space pause, Escape clears selection, F finishes.
+// [ / ] changes deck, Escape clears selection, F finishes.
 // Association show mode: Enter/Space/→ reveal and advance.
 // Association input mode: Enter submits from fields; → submits when focus is outside a field.
 document.addEventListener("keydown", function(e) {
@@ -5260,9 +5211,6 @@ document.addEventListener("keydown", function(e) {
     } else if (e.key === "ArrowLeft") {
       e.preventDefault();
       memoPrevGroup();
-    } else if (e.key === " " || e.code === "Space") {
-      e.preventDefault();
-      toggleMemoPause();
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (prac.groupIndex < prac.groups.length - 1) memoNextGroup();
@@ -5279,10 +5227,7 @@ document.addEventListener("keydown", function(e) {
 
   // === PRACTICE RECALL ===
   if (pracRecallVisible) {
-    if (e.key === " " || e.code === "Space") {
-      e.preventDefault();
-      toggleRecallPause();
-    } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
       e.preventDefault();
       const items = document.querySelectorAll("#poolGrid .pool-item");
       if (!items.length) return;
