@@ -52,6 +52,16 @@ class BrowserChecks(unittest.TestCase):
     def body_focus(self):
         self.page.evaluate('document.activeElement.blur()')
 
+    def controlled_clocks(self):
+        self.page.evaluate('''window.wallNow=10000;window.activeNow=10000;
+            Date.now=()=>wallNow;performance.now=()=>activeNow;
+            window.ticks=new Map();window.tickId=0;
+            window.setInterval=fn=>{const id=++tickId;ticks.set(id,fn);return id};
+            window.clearInterval=id=>ticks.delete(id);''')
+
+    def advance_clocks(self, ms):
+        self.page.evaluate('ms=>{wallNow+=ms;activeNow+=ms}',ms)
+
     def test_association_all_modes_and_correct_answers(self):
         self.assertEqual(self.page.evaluate('DATA.length'), 52)
         self.assertEqual(self.page.evaluate('new Set(DATA.map(cardKey)).size'), 52)
@@ -166,7 +176,7 @@ class BrowserChecks(unittest.TestCase):
         self.page.evaluate('resetPractice()');self.assertEqual(self.page.evaluate('ticks.size'),0)
 
     def test_practice_space_does_not_stop_time(self):
-        self.page.evaluate('window.testNow=10000;Date.now=()=>testNow')
+        self.page.evaluate('window.testNow=10000;Date.now=()=>testNow;performance.now=()=>testNow')
         self.practice()
         self.assertEqual(self.page.get_by_role('button',name='Пауза',exact=True).count(),0)
         for phase in ['memo','recall']:
@@ -186,12 +196,159 @@ class BrowserChecks(unittest.TestCase):
             window.setInterval=()=>1;window.clearInterval=()=>{};''')
         self.page.evaluate("document.getElementById('pracMemoMin').value='0';document.getElementById('pracMemoSec').value='0'")
         self.practice(1,52)
-        self.page.evaluate("switchTab('catalog');wallNow+=540000;activeNow+=5000;switchTab('practice');skipToRecall()")
+        self.page.evaluate("Object.defineProperty(document,'hidden',{configurable:true,get:()=>window.testHidden});testHidden=true;document.dispatchEvent(new Event('visibilitychange'));switchTab('catalog');wallNow+=540000;activeNow+=5000;testHidden=false;document.dispatchEvent(new Event('visibilitychange'));switchTab('practice');skipToRecall()")
         self.assertEqual(self.page.evaluate('prac.memoElapsed'),540)
-        self.page.evaluate('wallNow+=495000;activeNow+=5000;finishRecall()')
+        self.page.evaluate("testHidden=true;document.dispatchEvent(new Event('visibilitychange'));wallNow+=495000;activeNow+=5000;testHidden=false;document.dispatchEvent(new Event('visibilitychange'));finishRecall()")
         stats=self.page.locator('#pracStatsBox').inner_text()
         self.assertIn('Время запоминания: 9 мин 0 сек',stats)
         self.assertIn('Время вспоминания: 8 мин 15 сек',stats)
+
+    def test_recall_rejects_placement_at_deadline_without_timer_tick(self):
+        for elapsed in [2000,2001,60000]:
+            with self.subTest(elapsed=elapsed):
+                self.controlled_clocks();self.practice();self.page.evaluate('skipToRecall();prac.recallLimitSec=2')
+                self.advance_clocks(elapsed)
+                self.page.evaluate('placeCardInSlot(cardKey(prac.sequence[0]),0)')
+                self.assertEqual(self.page.evaluate('prac.placedCount'),0)
+                self.assertTrue(self.page.locator('#pracResults').is_visible())
+                self.assertEqual(self.page.evaluate('prac.recallElapsed'),2)
+
+    def test_recall_rejects_removal_after_deadline(self):
+        self.controlled_clocks();self.practice();self.page.evaluate('skipToRecall();prac.recallLimitSec=2;placeCardInSlot(cardKey(prac.sequence[0]),0)')
+        self.advance_clocks(2100)
+        self.page.evaluate('onSlotInteract(0)')
+        self.assertEqual(self.page.locator('.prac-result-item.correct').count(),1)
+        self.assertEqual(self.page.evaluate('prac.placedCount'),1)
+
+    def test_recall_boundary_preserves_last_valid_answer(self):
+        self.controlled_clocks();self.practice();self.page.evaluate('skipToRecall();prac.recallLimitSec=2')
+        self.advance_clocks(1999)
+        self.page.evaluate('placeCardInSlot(cardKey(prac.sequence[0]),0)')
+        self.advance_clocks(1)
+        self.page.evaluate('placeCardInSlot(cardKey(prac.sequence[1]),0)')
+        self.assertEqual(self.page.locator('.prac-result-item.correct').count(),1)
+        self.assertEqual(self.page.evaluate('prac.placedCount'),1)
+
+    def test_keyboard_cannot_place_after_deadline(self):
+        self.controlled_clocks();self.practice();self.page.evaluate('skipToRecall();prac.recallLimitSec=2')
+        self.body_focus();self.page.keyboard.press('ArrowRight')
+        self.advance_clocks(2100);self.page.keyboard.press('Enter')
+        self.assertEqual(self.page.evaluate('prac.placedCount'),0)
+        self.assertTrue(self.page.locator('#pracResults').is_visible())
+
+    def test_drag_started_before_deadline_cannot_finish_after_it(self):
+        self.controlled_clocks();self.practice();self.page.evaluate('skipToRecall();prac.recallLimitSec=2')
+        self.page.wait_for_timeout(50)
+        rank=self.page.locator('.pool-item').first.locator('.fan-rank').bounding_box()
+        slot=self.page.locator('.slot').first.bounding_box()
+        self.page.mouse.move(rank['x']+rank['width']/2,rank['y']+rank['height']/2)
+        self.page.mouse.down();self.page.mouse.move(rank['x']+20,rank['y']-30,steps=4)
+        self.assertIsNotNone(self.page.evaluate('dragState'))
+        self.advance_clocks(2100)
+        self.page.mouse.move(slot['x']+slot['width']/2,slot['y']+slot['height']/2)
+        self.page.mouse.up()
+        self.assertEqual(self.page.evaluate('prac.placedCount'),0)
+        self.assertIsNone(self.page.evaluate('dragState'))
+        self.assertTrue(self.page.locator('#pracResults').is_visible())
+
+    def test_expired_deck_switch_keeps_completed_answers(self):
+        self.controlled_clocks();self.practice(2,104)
+        self.page.evaluate('skipToRecall();prac.recallLimitSec=2;placeCardInSlot(cardKey(prac.sequence[0]),0)')
+        self.advance_clocks(2100);self.page.evaluate('switchDeckTab(1)')
+        self.assertEqual(self.page.evaluate('prac.activeDeck'),0)
+        self.assertEqual(self.page.locator('.prac-result-item.correct').count(),1)
+        self.assertTrue(self.page.locator('#pracResults').is_visible())
+
+    def test_hidden_clock_does_not_go_backwards(self):
+        self.controlled_clocks();self.page.evaluate('setMemoPreset(0)');self.practice()
+        self.advance_clocks(5000)
+        self.page.evaluate("Object.defineProperty(document,'hidden',{configurable:true,get:()=>window.testHidden});testHidden=true;document.dispatchEvent(new Event('visibilitychange'));wallNow-=3600000;activeNow+=5000;testHidden=false;document.dispatchEvent(new Event('visibilitychange'));skipToRecall()")
+        self.assertEqual(self.page.evaluate('prac.memoElapsed'),10)
+
+    def test_return_to_practice_finishes_expired_multideck_recall(self):
+        self.controlled_clocks();self.practice(2,104)
+        self.page.evaluate("skipToRecall();switchDeckTab(1);placeCardInSlot(cardKey(prac.sequence[52]),0);prac.recallLimitSec=2;switchTab('catalog')")
+        self.advance_clocks(2100);self.page.evaluate("switchTab('practice')")
+        self.assertTrue(self.page.locator('#pracResults').is_visible())
+        self.assertFalse(self.page.locator('#poolDock').is_visible())
+        self.assertEqual(self.page.locator('.prac-result-item.correct').count(),1)
+
+    def test_repeated_enter_on_start_button_keeps_sequence(self):
+        self.page.evaluate("switchTab('practice')")
+        self.page.locator('button[onclick="startPractice()"]').focus()
+        self.page.keyboard.down('Enter')
+        before=self.page.evaluate('JSON.stringify(prac.sequence)')
+        self.page.keyboard.down('Enter');self.page.keyboard.up('Enter')
+        self.assertEqual(self.page.evaluate('JSON.stringify(prac.sequence)'),before)
+        self.assertEqual(self.page.evaluate('prac.groupIndex'),0)
+
+    def test_memo_navigation_checks_deadline(self):
+        for operation in ['memoNextGroup()','memoPrevGroup()']:
+            with self.subTest(operation=operation):
+                self.controlled_clocks();self.practice();self.page.evaluate('prac.memoLimitSec=2')
+                self.advance_clocks(2100);self.page.evaluate(operation)
+                self.assertTrue(self.page.locator('#pracRecall').is_visible())
+                self.assertEqual(self.page.evaluate('prac.memoElapsed'),2)
+
+    def test_foreground_system_clock_changes_do_not_change_elapsed(self):
+        for jump in [-3600000,3600000]:
+            with self.subTest(jump=jump):
+                self.controlled_clocks();self.page.evaluate('setMemoPreset(0)');self.practice()
+                self.advance_clocks(60000)
+                self.assertEqual(self.page.evaluate("practiceElapsed('memo')"),60)
+                self.page.evaluate('jump=>wallNow+=jump',jump)
+                self.assertEqual(self.page.evaluate("practiceElapsed('memo')"),60)
+                self.advance_clocks(5000);self.page.evaluate('skipToRecall()')
+                self.assertEqual(self.page.evaluate('prac.memoElapsed'),65)
+
+    def test_page_return_checks_deadline_without_interval(self):
+        for event in ['focus','pageshow','visibilitychange']:
+            with self.subTest(event=event):
+                self.controlled_clocks();self.practice();self.page.evaluate('skipToRecall();prac.recallLimitSec=2')
+                self.advance_clocks(2100)
+                self.page.evaluate('name=>(name==="visibilitychange"?document:window).dispatchEvent(new Event(name))',event)
+                self.assertTrue(self.page.locator('#pracResults').is_visible())
+
+    def test_old_actions_cannot_mutate_completed_or_reset_attempt(self):
+        self.controlled_clocks();self.practice();self.page.evaluate('skipToRecall();placeCardInSlot(cardKey(prac.sequence[0]),0);finishRecall()')
+        before=self.page.evaluate('JSON.stringify(prac.slots)')
+        self.page.evaluate('onSlotInteract(0);placeCardInSlot(cardKey(prac.poolCards[2]),1)')
+        self.assertEqual(self.page.evaluate('JSON.stringify(prac.slots)'),before)
+        self.page.evaluate('resetPractice();onSlotInteract(0);placeCardInSlot(cardKey(prac.poolCards[3]),1)')
+        self.assertEqual(self.page.evaluate('JSON.stringify(prac.slots)'),before)
+
+    def test_repeated_enter_does_not_advance_or_restart_attempt(self):
+        self.practice();self.body_focus()
+        self.page.keyboard.down('Enter');group=self.page.evaluate('prac.groupIndex')
+        self.page.keyboard.down('Enter');self.page.keyboard.up('Enter')
+        self.assertEqual(self.page.evaluate('prac.groupIndex'),group)
+        before=self.page.evaluate('JSON.stringify(prac.sequence)')
+        self.page.evaluate('startPractice()')
+        self.assertEqual(self.page.evaluate('JSON.stringify(prac.sequence)'),before)
+
+    def test_practice_seeded_pool_conservation(self):
+        for decks in [0,1,2,5]:
+            with self.subTest(decks=decks):
+                self.practice(decks,17);self.page.evaluate('skipToRecall()')
+                failures=self.page.evaluate('''()=>{
+                    let seed=711;const rand=n=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed%n};
+                    const errors=[];
+                    for(let step=0;step<300;step++){
+                        if(prac.usePerDeck&&rand(4)===0) switchDeckTab(rand(prac.decks));
+                        const slot=rand(prac.slots.length);
+                        if(rand(3)===0){selectedKey=null;onSlotInteract(slot)}
+                        else {const cards=prac.poolCards.filter(c=>prac.poolCounts[cardKey(c)]>0);if(cards.length)placeCardInSlot(cardKey(cards[rand(cards.length)]),slot)}
+                        saveActiveDeck();
+                        const states=prac.usePerDeck?prac.perDeck:[prac];
+                        for(const st of states){
+                            const filled=st.slots.filter(Boolean);
+                            if(st.placedCount!==filled.length) errors.push([step,'placed count']);
+                            for(const c of DATA){const k=cardKey(c);const n=st.poolCounts[k]+filled.filter(v=>cardKey(v)===k).length;if(n!==1)errors.push([step,k,n])}
+                        }
+                    }
+                    return errors;
+                }''')
+                self.assertEqual(failures,[])
 
     def test_invalid_time_is_clamped(self):
         for minutes,seconds,expected in [('-1','-30',0),('999','999',3659),('','',0)]:
@@ -231,7 +388,7 @@ class BrowserChecks(unittest.TestCase):
                 target.addEventListener=(type,fn,opts)=>{if(['onPointerMove','onPointerUp','onPointerCancel','onWindowBlur','onVisibilityChange'].includes(fn.name)){if(!gestureListeners.has(type))gestureListeners.set(type,new Set());gestureListeners.get(type).add(fn)};return add(type,fn,opts)};
                 target.removeEventListener=(type,fn,opts)=>{gestureListeners.get(type)?.delete(fn);return remove(type,fn,opts)};
             }""")
-        for operation in ['resetPractice()', 'switchDeckTab(1)', 'finishRecall()']:
+        for operation in ['resetPractice()', 'switchDeckTab(1)', 'finishRecall()', "switchTab('catalog')"]:
             self.practice(2,104);self.page.evaluate('skipToRecall()');self.page.wait_for_timeout(50)
             el=self.page.locator('.pool-item').first
             r=el.locator('.fan-rank').bounding_box()

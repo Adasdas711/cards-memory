@@ -3060,11 +3060,16 @@ function switchTab(name) {
   document.querySelectorAll(".tab-content").forEach(t => t.classList.toggle("active", t.id === "tab-" + name));
   // Hide fixed dock when leaving practice
   if (name !== "practice") {
+    endDragCleanup();
+    suppressClick = false;
     const dock = document.getElementById("poolDock");
     if (dock) dock.classList.remove("visible");
-  } else if (!document.getElementById("pracRecall").classList.contains("hidden")) {
-    const dock = document.getElementById("poolDock");
-    if (dock) dock.classList.add("visible");
+  } else {
+    refreshPracticeTimers();
+    if (!document.getElementById("pracRecall").classList.contains("hidden")) {
+      const dock = document.getElementById("poolDock");
+      if (dock) dock.classList.add("visible");
+    }
   }
 }
 
@@ -3696,10 +3701,12 @@ let prac = {
   memoElapsed: 0,
   memoTimerId: null,
   memoStartTs: null,
+  memoMonoTs: null,
   recallLimitSec: 15 * 60,
   recallElapsed: 0,
   recallTimerId: null,
   recallStartTs: null,
+  recallMonoTs: null,
   slots: [],             // array of card ids or null (ACTIVE deck's slots — alias into perDeck[activeDeck] when usePerDeck)
   poolCounts: {},        // key: "suit|rank" -> remaining count (ACTIVE deck's pool)
   poolCards: [],         // unique card templates for pool display (shared across decks)
@@ -3792,6 +3799,8 @@ function formatTimer(sec) {
 }
 
 function startPractice() {
+  // A double click or repeated key must not replace a running attempt.
+  if (prac.memoStartTs !== null || prac.recallStartTs !== null) return;
   const { totalCards, decks } = getPracticeCardCount();
   const groupSize = parseInt(document.getElementById("pracGroupSize").value, 10) || 2;
   onCustomMemoTime();
@@ -3834,6 +3843,8 @@ function startPractice() {
   prac.recallElapsed = 0;
   if (prac.memoTimerId) clearInterval(prac.memoTimerId);
   if (prac.recallTimerId) clearInterval(prac.recallTimerId);
+  prac.memoTimerId = null;
+  prac.recallTimerId = null;
 
   // UI
   document.getElementById("pracSetup").classList.add("hidden");
@@ -3870,6 +3881,7 @@ function showMemoGroup() {
 }
 
 function memoNextGroup() {
+  if (!practicePhaseActive("memo")) return;
   if (prac.groupIndex < prac.groups.length - 1) {
     prac.groupIndex++;
     showMemoGroup();
@@ -3877,6 +3889,7 @@ function memoNextGroup() {
 }
 
 function memoPrevGroup() {
+  if (!practicePhaseActive("memo")) return;
   if (prac.groupIndex > 0) {
     prac.groupIndex--;
     showMemoGroup();
@@ -3888,24 +3901,63 @@ function toggleProgress() {
   document.getElementById("memoProgressWrap").style.display = show ? "block" : "none";
 }
 
-// Use wall-clock timestamps so background tabs and device suspension count too.
+// Monotonic time ignores system-clock changes while the page is visible.
+// Hidden pages also use wall time because some browsers suspend their monotonic clock.
+let practiceClockHidden = document.hidden;
 function practiceElapsed(phase) {
   const started = prac[`${phase}StartTs`];
-  const running = started !== null;
-  return prac[`${phase}Elapsed`] + (running ? Math.max(0, Date.now() - started) / 1000 : 0);
+  if (started === null) return prac[`${phase}Elapsed`];
+  const wall = Date.now();
+  const mono = performance.now();
+  const monoDelta = Math.max(0, mono - prac[`${phase}MonoTs`]);
+  const delta = practiceClockHidden ? Math.max(monoDelta, wall - started) : monoDelta;
+  prac[`${phase}Elapsed`] += delta / 1000;
+  prac[`${phase}StartTs`] = wall;
+  prac[`${phase}MonoTs`] = mono;
+  return prac[`${phase}Elapsed`];
 }
+
+function practicePhaseActive(phase) {
+  if (prac[`${phase}StartTs`] === null) return false;
+  const limit = prac[`${phase}LimitSec`];
+  const elapsed = practiceElapsed(phase);
+  if (limit > 0 && elapsed >= limit) {
+    if (phase === "memo") goToRecall();
+    else finishRecall();
+    return false;
+  }
+  return true;
+}
+
+function refreshPracticeTimers() {
+  if (prac.memoStartTs !== null) {
+    if (practicePhaseActive("memo")) updateMemoTimerDisplay();
+  } else if (prac.recallStartTs !== null) {
+    if (practicePhaseActive("recall")) updateRecallTimerDisplay();
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  // Account for the entire hidden interval before changing the clock policy.
+  refreshPracticeTimers();
+  practiceClockHidden = document.hidden;
+});
+window.addEventListener("focus", refreshPracticeTimers);
+window.addEventListener("pageshow", refreshPracticeTimers);
 
 function stopPracticeTimer(phase) {
   const limit = prac[`${phase}LimitSec`];
   const elapsed = practiceElapsed(phase);
   prac[`${phase}Elapsed`] = limit > 0 ? Math.min(elapsed, limit) : elapsed;
   prac[`${phase}StartTs`] = null;
+  prac[`${phase}MonoTs`] = null;
   clearInterval(prac[`${phase}TimerId`]);
   prac[`${phase}TimerId`] = null;
 }
 
 function startMemoTimer() {
   prac.memoStartTs = Date.now();
+  prac.memoMonoTs = performance.now();
   updateMemoTimerDisplay();
 
   if (prac.memoLimitSec === 0) {
@@ -4071,6 +4123,7 @@ function renderDeckTabs() {
 }
 
 function switchDeckTab(d) {
+  if (!practicePhaseActive("recall")) return;
   if (!prac.usePerDeck || d === prac.activeDeck || !prac.perDeck[d]) return;
 
   // Cleanup any in-flight drag/selection so nothing bleeds into the new tab
@@ -4656,6 +4709,8 @@ function clearPoolSelection() {
 }
 
 function onSlotInteract(slotIdx) {
+  if (!practicePhaseActive("recall")) return;
+  if (!Number.isInteger(slotIdx) || slotIdx < 0 || slotIdx >= prac.slots.length) return;
   if (selectedKey) {
     placeCardInSlot(selectedKey, slotIdx);
     return;
@@ -4717,6 +4772,7 @@ function updateOneSlotDom(slotIdx, card) {
 }
 
 function placeCardInSlot(key, slotIdx) {
+  if (!practicePhaseActive("recall")) return;
   if (!Number.isInteger(slotIdx) || slotIdx < 0 || slotIdx >= prac.slots.length) return;
   if ((prac.poolCounts[key] || 0) <= 0) return;
 
@@ -4788,6 +4844,7 @@ function getPoolItemByFocusIndex(idx) {
 }
 
 function onPoolPointerDown(e, key, itemEl) {
+  if (!practicePhaseActive("recall")) return;
   if (e.pointerType === "mouse" && e.button !== 0) return;
   if ((prac.poolCounts[key] || 0) <= 0) return;
   if (dragState) return;
@@ -4843,6 +4900,7 @@ function onPoolPointerDown(e, key, itemEl) {
 
   const onPointerMove = (ev) => {
     if (!dragState || ev.pointerId !== pointerId) return;
+    if (!practicePhaseActive("recall")) return;
     const st = dragState;
 
     // Once drag has started, do nothing except queue the latest coordinates.
@@ -4901,6 +4959,7 @@ function onPoolPointerDown(e, key, itemEl) {
 
   const onPointerUp = (ev) => {
     if (!dragState || ev.pointerId !== pointerId) return;
+    if (!practicePhaseActive("recall")) return;
     const st = dragState;
     removeGestureListeners();
 
@@ -4959,6 +5018,7 @@ function onPoolPointerDown(e, key, itemEl) {
 
 function startRecallTimer() {
   prac.recallStartTs = Date.now();
+  prac.recallMonoTs = performance.now();
   prac.recallElapsed = 0;
 
   updateRecallTimerDisplay();
@@ -5068,6 +5128,8 @@ function resetPractice() {
   prac.recallTimerId = null;
   prac.memoStartTs = null;
   prac.recallStartTs = null;
+  prac.memoMonoTs = null;
+  prac.recallMonoTs = null;
 
   // Cleanup touch/drag state
   endDragCleanup();
@@ -5154,6 +5216,14 @@ function lastFilledSlotIndex() {
 // [ / ] changes deck, Escape clears selection, F finishes.
 // Association show mode: Enter/Space/→ reveal and advance.
 // Association input mode: Enter submits from fields; → submits when focus is outside a field.
+// Capture repeats before native buttons can trigger another practice action.
+document.addEventListener("keydown", e => {
+  if (document.getElementById("tab-practice").classList.contains("active") && e.repeat &&
+      ["enter", " ", "r", "f", "n", "escape"].includes(e.key.toLowerCase())) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+}, true);
 document.addEventListener("keydown", function(e) {
   if (document.body.classList.contains("menu-open")) {
     if (e.key === "Escape") { e.preventDefault(); closeSideMenu(); }
@@ -5205,6 +5275,7 @@ document.addEventListener("keydown", function(e) {
 
   // === PRACTICE MEMORIZATION ===
   if (pracMemoVisible) {
+    if (!practicePhaseActive("memo")) return;
     if (e.key === "ArrowRight") {
       e.preventDefault();
       memoNextGroup();
@@ -5227,6 +5298,7 @@ document.addEventListener("keydown", function(e) {
 
   // === PRACTICE RECALL ===
   if (pracRecallVisible) {
+    if (!practicePhaseActive("recall")) return;
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
       e.preventDefault();
       const items = document.querySelectorAll("#poolGrid .pool-item");
